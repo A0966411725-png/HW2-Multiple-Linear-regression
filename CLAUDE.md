@@ -73,6 +73,7 @@ python predict.py --sqft_living 2000 --grade 8 --zipcode 98052 --lat 47.68
 - Windows 路徑：`D:\Claude code\物聯網HW2-Multiple Linear regression`（**不要用 OneDrive 桌面那份舊 clone**）
 - 修改程式或數字後，要同步更新 `report.html`、README.md、`ai_conversation.html`，並重新產生兩份 PDF。
 - 之後在任一台電腦有新的 AI 對話內容，也要補進報告第 8 節與 `ai_conversation.html`。
+- **對話紀錄只放和作業內容有關的部分**（選題、資料、分析、模型、報告、NotebookLM）。環境設定、git／GitHub 同步、CLAUDE.md、搬資料夾、Remote Control、套件安裝等和作業無關的對話一律不要放（「程式在 macOS／Windows 都能執行、結果可重現」屬於可執行性，可以保留）。
 
 ## 待使用者處理（Claude 無法代做）
 - 作業要求「對話以 pdfCrowd 或其他方式匯出成 PDF」：目前的 `7115064191_ai_conversation.pdf` 是整理版。若要更保險，請使用者在 Claude 桌面版把兩段原始對話各自 Export，一起放進 zip。

@@ -278,19 +278,15 @@ Predicted price : $553,994
 
 <h2 class="pb">8. GPT 輔助內容（AI 對話過程）</h2>
 <div class="box">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07<br>
-說明：本作業的 AI 協助是用 Claude Code 完成的（不是 ChatGPT），以下為對話過程整理（工具執行的細節已省略）。完整對話紀錄另附 <code>7115064191_ai_conversation.pdf</code>。作業分兩段完成：第一段在 Mac 上建立分析，第二段在 Windows 電腦上透過 GitHub 同步後補強。</div>
+說明：本作業的 AI 協助是用 Claude Code 完成的（不是 ChatGPT），以下為對話過程整理（工具執行的細節已省略）。完整對話紀錄另附 <code>7115064191_ai_conversation.pdf</code>。作業分兩段完成：第一段建立完整分析，第二段依評分標準補強。只收錄和作業內容有關的對話。</div>
 
-<h3>第一段（Mac）：建立完整分析</h3>
-<div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW1 在我的 GitHub（幫我在側邊欄打開）</div>
-<div class="msg ai"><div class="who">AI</div>在側邊欄瀏覽器開了 GitHub，不過當時還找不到你的帳號，所以請你提供 repo 連結或使用者名稱。也先整理了 HW2 的要求：Kaggle 資料集要有 10–20 個特徵、CRISP-DM 六個步驟、特徵選擇、模型評估、含預測區間的預測圖。</div>
+<h3>第一段：建立完整分析</h3>
+<div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW2 要延伸自我的 HW1。</div>
+<div class="msg ai"><div class="who">AI</div>整理 HW2 的要求：Kaggle 資料集要有 10–20 個特徵、CRISP-DM 六個步驟、特徵選擇、模型評估、含預測區間的預測圖。查看 HW1「HW1-CWA-Weather」（台灣六大區域天氣預報：CWA API + SQLite + Streamlit）後，因為 HW1 不是回歸題目，提出兩個方向：(1) 天氣資料集，主題比較連貫；(2) 經典資料集，例如房價。</div>
 
-<div class="msg user"><div class="who">學生</div>這台電腦都設定好了</div>
-<div class="msg ai"><div class="who">AI</div>在 <code>~/.local/bin/gh</code> 找到 GitHub CLI，帳號是 A0966411725-png，在側邊欄打開了 HW1 repo「HW1-CWA-Weather」（台灣六大區域天氣預報：CWA API + SQLite + Streamlit）。<br>
-因為 HW1 不是回歸題目，提出兩個方向：(1) 天氣資料集，主題比較連貫；(2) 經典資料集，例如房價。</div>
-
-<div class="msg user"><div class="who">學生</div>主題選房價預測，HW2 放在現在資料夾（告訴我現在資料夾位置），之後要在 GitHub 建立一個新的</div>
+<div class="msg user"><div class="who">學生</div>主題選房價預測。</div>
 <div class="msg ai"><div class="who">AI</div>建議用 Kaggle「House Sales in King County, USA」（21,613 筆、18 個特徵，目標 price）。因為沒有 Kaggle 金鑰，詢問下載方式和學號。</div>
-<div class="msg user"><div class="who">學生</div>從 GitHub 鏡像下載；學號 7115064191。（之後補充：下載資料放在目前資料夾）</div>
+<div class="msg user"><div class="who">學生</div>從 GitHub 鏡像下載；學號 7115064191。</div>
 
 <div class="msg ai"><div class="who">AI</div>下載 <code>kc_house_data.csv</code>，寫好並執行主程式 <code>7115064191_hw2.py</code>：
 <ul>
@@ -311,24 +307,18 @@ Predicted price : $553,994
 </table>
 95% 預測區間在測試集的實際覆蓋率是 94.4%（M3）/ 94.0%（M4）。總共產出 11 張圖（含 CI/PI 預測圖）、<code>predict.py</code> 部署程式，以及 PDF 報告。另外發現模型檔有 34 MB（statsmodels 會存訓練資料），用 <code>remove_data()</code> 縮到 60 KB。</div>
 
-<div class="msg user"><div class="who">學生</div>然後這個任務設定可在其他電腦也能對話；不行的話就自動重開一個任務，然後告訴我你現在資料夾在哪。</div>
-<div class="msg ai"><div class="who">AI</div>開啟了 Remote Control，可以從 claude.ai/code 或手機 App 繼續這個對話。</div>
+<div class="msg user"><div class="who">學生</div>在 NotebookLM 研究網路上同主題的解法，寫一份 100 字以上的摘要貼進報告。</div>
+<div class="msg ai"><div class="who">AI</div>在 NotebookLM（Gemini Notebook）建立筆記本，加入 7 個網路來源（Kaggle 資料集頁、多個 GitHub / nbviewer 上的 King County 房價 Notebook、AI Planet 上的 Notebook、ITM Conferences 2025 的論文），請它整理主流解法並寫摘要，再把摘要貼進報告第 9 節。</div>
 
-<div class="msg user"><div class="who">學生</div>（截圖）檔案夾用 HW2 那一個資料夾</div>
-<div class="msg ai"><div class="who">AI</div>把所有檔案搬到 <code>~/本地/ HW2- Multiple Linear regression </code>。因為資料夾名稱頭尾有空格，對話的工作目錄沒辦法切換過去，所以改用完整路徑處理。也補上 README.md、requirements.txt，並壓縮成 <code>7115064191_hw2.zip</code>。</div>
-
-<div class="msg user"><div class="who">學生</div>把和你的對話匯出成 PDF；在 NotebookLM 研究網路上同主題的解法，寫一份 100 字以上的摘要貼進報告。做給我。</div>
-<div class="msg ai"><div class="who">AI</div>在 NotebookLM（Gemini Notebook）建立筆記本，加入 7 個網路來源（Kaggle 資料集頁、多個 GitHub / nbviewer 上的 King County 房價 Notebook、AI Planet 上的 Notebook、ITM Conferences 2025 的論文），請它整理主流解法並寫摘要，再把摘要貼進報告第 9 節，同時產出這份對話紀錄 PDF。</div>
-
-<h3>第二段（Windows）：依評分標準補強</h3>
-<div class="msg user"><div class="who">學生</div>（貼上評分標準截圖）我的 GitHub 已有這份作業，因為我會用不同電腦做作業，所以如果有更改或是要提醒另外一個 Claude，要寫在 CLAUDE.md（也在 GitHub）。評分標準越完整越好，讓分數盡可能高。</div>
-<div class="msg ai"><div class="who">AI</div>從 GitHub 取得最新版本，把本機資料夾接上 GitHub repo。在 Windows 上安裝套件時，最新版 pandas / scikit-learn 的 DLL 被 Windows「應用程式控制原則」封鎖，改用虛擬環境安裝 pandas 2.2.3 + scikit-learn 1.5.2 後成功執行，且重新執行的數字和 Mac 版完全一致（可重現）。另外修正 Windows 主控台無法印出「²」的編碼問題。</div>
-<div class="msg ai"><div class="who">AI</div>對照評分標準逐項補強：
+<h3>第二段：依評分標準補強</h3>
+<div class="msg user"><div class="who">學生</div>（貼上評分標準截圖）評分標準越完整越好，讓分數盡可能高。</div>
+<div class="msg ai"><div class="who">AI</div>先在另一台電腦（Windows）重新執行主程式，數字和原本完全相同，確認結果可以重現；並修正 Windows 主控台印不出「²」的編碼問題，讓程式在 macOS 與 Windows 都能直接執行。</div>
+<div class="msg ai"><div class="who">AI</div>對照評分標準逐項補強（不改變原本的特徵選擇與模型數字）：
 <ul>
-<li><b>特徵選擇與評估（25%）</b>：新增 Forward Stepwise（AIC/BIC）佐證；新增 Breusch-Pagan、Jarque-Bera 檢定，發現有異質變異，改用 HC3 穩健標準誤確認 12 個係數中 11 個仍顯著；補上 Random Forest 的 5-fold CV。</li>
-<li><b>結果說服力（15%）</b>：新增預測區間校準圖（6 種信賴水準）與殘差地圖，直接看出 zipcode 消除了地段造成的系統性誤差。</li>
-<li><b>作業選項</b>：補做 Auto Regression（每週中位房價 AR(3)），並如實說明它贏不了 naive 預測、不適合當主模型的原因。</li>
-<li><b>文件（50%）</b>：加上 CRISP-DM 流程圖、欄位字典、利害關係人表、成功標準檢核表、網路解法 R² 對照表、結論與限制。</li>
+<li><b>特徵選擇與評估</b>：新增 Forward Stepwise（AIC/BIC）佐證圖：前 12 名有 9 個和我們的子集相同，差異的 3 個都是共線的面積欄位。新增 Breusch-Pagan、Jarque-Bera、條件數檢定；Breusch-Pagan 顯示有異質變異，所以改用 HC3 穩健標準誤重新檢定，12 個係數中 11 個仍顯著（只有 log_sqft_lot 變成 p = 0.078）。補上 Random Forest 的 5-fold CV（0.889 ± 0.004）。</li>
+<li><b>結果說服力</b>：新增預測區間校準圖（50%–99% 六種水準，90–95% 幾乎與理想線重合），以及殘差地圖：M3 在市區有明顯的低估群聚，加入 zipcode 後群聚消失，殘差標準差從 0.258 降到 0.185。</li>
+<li><b>Auto Regression</b>：用每週中位房價做 AR(3)，預測最後 8 週的 MAPE 是 4.6%，比 naive 預測（4.3%）還差。報告如實說明：橫斷面資料不適合用 AR，所以 AR 只當補充。</li>
+<li><b>報告</b>：加上 CRISP-DM 流程圖、欄位字典、利害關係人表、成功標準檢核表（M4 全部達成，M3 的 MAPE 20.3% 差一點沒達到）、網路解法 R² 對照表（此資料集在 Kaggle 是 Dataset，沒有排行榜）、結論與限制。</li>
 </ul></div>
 
 <h2 class="pb">9. NotebookLM 摘要</h2>
