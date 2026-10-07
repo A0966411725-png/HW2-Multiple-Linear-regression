@@ -13,12 +13,62 @@
     "is_renovated",
     "lat"
   ],
+  "forward_stepwise_order": [
+    "grade",
+    "lat",
+    "log_sqft_living",
+    "house_age",
+    "view",
+    "bathrooms",
+    "log_sqft_living15",
+    "waterfront",
+    "condition",
+    "floors",
+    "bedrooms",
+    "log_sqft_lot15",
+    "is_renovated",
+    "log_sqft_lot",
+    "has_basement",
+    "log_sqft_above",
+    "long"
+  ],
+  "m3_diagnostics": {
+    "Breusch-Pagan LM": 604.5933138694081,
+    "Breusch-Pagan p": 1.1077312020249316e-121,
+    "Jarque-Bera": 796.217438432374,
+    "Jarque-Bera p": 1.269346081974465e-173,
+    "residual skew": 0.15434773127474077,
+    "residual kurtosis": 4.0099122069116,
+    "Durbin-Watson": 1.9927236439510552,
+    "condition number (std. X)": 4.409887368512545,
+    "max VIF": 4.436237338389857,
+    "features significant with HC3 robust SE (p<0.05)": "11/12",
+    "not significant with HC3": "log_sqft_lot (p=0.078)"
+  },
+  "pi_calibration_%": {
+    "M3 MLR selected (12 feat.)": {
+      "50%": 52.637721755368815,
+      "68%": 71.07843137254902,
+      "80%": 81.65266106442577,
+      "90%": 90.24276377217554,
+      "95%": 94.39775910364145,
+      "99%": 98.13258636788048
+    },
+    "M4 MLR selected + zipcode one-hot": {
+      "50%": 57.422969187675065,
+      "68%": 73.5060690943044,
+      "80%": 83.38001867413632,
+      "90%": 90.52287581699346,
+      "95%": 94.02427637721755,
+      "99%": 97.59570494864612
+    }
+  },
   "rfecv_n_features": 16,
   "lasso_alpha": 0.0003667757018473571,
   "backward_elim_removed": [
     [
       "long",
-      0.8069568263135951
+      0.8069568263133696
     ]
   ],
   "models": {
@@ -68,19 +118,19 @@
       "CV_R2_log (5-fold mean)": 0.878889,
       "CV_R2_log (std)": 0.002703,
       "R2_$": 0.865734,
-      "RMSE_$": 142496.31664,
-      "MAE_$": 76681.369295,
+      "RMSE_$": 142496.316512,
+      "MAE_$": 76681.36929,
       "MAPE_%": 13.739388
     },
     "Random Forest (benchmark)": {
-      "R2_log": 0.892546,
+      "R2_log": 0.892438,
       "AdjR2_log": NaN,
-      "CV_R2_log (5-fold mean)": NaN,
-      "CV_R2_log (std)": NaN,
-      "R2_$": 0.861568,
-      "RMSE_$": 144690.205217,
-      "MAE_$": 70425.532112,
-      "MAPE_%": 12.273978
+      "CV_R2_log (5-fold mean)": 0.888882,
+      "CV_R2_log (std)": 0.003669,
+      "R2_$": 0.861277,
+      "RMSE_$": 144842.297201,
+      "MAE_$": 70493.239195,
+      "MAPE_%": 12.282149
     },
     "HistGradientBoosting (benchmark)": {
       "R2_log": 0.905273,
@@ -96,11 +146,11 @@
   "interval_coverage": {
     "M3 MLR selected (12 feat.)": {
       "PI95_coverage_%": 94.39775910364145,
-      "median_PI_width_$": 473976.9679448827
+      "median_PI_width_$": 473976.9679448977
     },
     "M4 MLR selected + zipcode one-hot": {
       "PI95_coverage_%": 94.02427637721755,
-      "median_PI_width_$": 330001.6346644811
+      "median_PI_width_$": 330001.63466487685
     }
   },
   "m3_coefficients": {

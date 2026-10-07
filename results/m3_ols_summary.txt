@@ -4,7 +4,7 @@ Dep. Variable:              log_price   R-squared:                       0.761
 Model:                            OLS   Adj. R-squared:                  0.761
 Method:                 Least Squares   F-statistic:                     4553.
 Date:                Wed, 07 Oct 2026   Prob (F-statistic):               0.00
-Time:                        10:56:52   Log-Likelihood:                -909.51
+Time:                        14:25:59   Log-Likelihood:                -909.51
 No. Observations:               17135   AIC:                             1845.
 Df Residuals:                   17122   BIC:                             1946.
 Df Model:                          12                                         

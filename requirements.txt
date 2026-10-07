@@ -4,3 +4,5 @@ scipy>=1.10
 scikit-learn>=1.3
 statsmodels>=0.14
 matplotlib>=3.7
+# Windows + Smart App Control: if pandas/sklearn DLLs are blocked, use
+#   pip install pandas==2.2.3 scikit-learn==1.5.2

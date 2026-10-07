@@ -3,12 +3,13 @@ HW2 - Multiple Linear Regression on King County House Sales (CRISP-DM)
 Student ID : 7115064191
 Dataset    : House Sales in King County, USA (Kaggle)
              https://www.kaggle.com/datasets/harlfoxem/housesalesprediction
-Run        : python3 7115064191_hw2.py
+Run        : python 7115064191_hw2.py   (Mac: python3; ~1 min)
 Outputs    : figures/*.png, results/*.csv|json, model/house_price_mlr.pkl
 """
 import json
 import os
 import pickle
+import sys
 import warnings
 
 import matplotlib
@@ -25,7 +26,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score, train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.stats.stattools import durbin_watson, jarque_bera
+from statsmodels.tsa.ar_model import AutoReg, ar_select_order
 
 warnings.filterwarnings("ignore")
 SEED = 42
@@ -36,6 +40,27 @@ RES = os.path.join(BASE, "results")
 MOD = os.path.join(BASE, "model")
 for d in (FIG, RES, MOD):
     os.makedirs(d, exist_ok=True)
+
+
+class Tee:
+    """Print to the console and to results/run_log.txt at the same time (UTF-8 on Mac and Windows)."""
+    def __init__(self, path):
+        self.console = sys.stdout
+        self.file = open(path, "w", encoding="utf-8")
+
+    def write(self, s):
+        try:
+            self.console.write(s)
+        except UnicodeEncodeError:  # e.g. Windows cp950 console cannot print "²"
+            self.console.write(s.encode(self.console.encoding or "ascii", "replace").decode(self.console.encoding or "ascii"))
+        self.file.write(s)
+
+    def flush(self):
+        self.console.flush()
+        self.file.flush()
+
+
+sys.stdout = Tee(os.path.join(RES, "run_log.txt"))
 
 # ---- chart style (validated reference palette) ----
 BLUE, ORANGE, AQUA, GRAY = "#2a78d6", "#eb6834", "#1baf7a", "#8a8984"
@@ -269,6 +294,40 @@ ax[1].text(0.98, 0.04, "blue = in final subset\ngray = dropped", transform=ax[1]
 fig.tight_layout()
 save(fig, "04_feature_selection.png")
 
+# 4.6 Cross-check: forward stepwise selection by AIC (not used for voting, only to confirm
+#     how many features are worth keeping and that the chosen subset is near the AIC/BIC elbow)
+def forward_stepwise(X, y):
+    chosen, rest, path = [], list(X.columns), []
+    while rest:
+        fits = {c: sm.OLS(y, sm.add_constant(X[chosen + [c]])).fit() for c in rest}
+        best = min(fits, key=lambda c: fits[c].aic)
+        chosen.append(best)
+        rest.remove(best)
+        m = fits[best]
+        path.append({"step": len(chosen), "added": best, "AIC": m.aic, "BIC": m.bic, "AdjR2": m.rsquared_adj})
+    return pd.DataFrame(path)
+
+fwd = forward_stepwise(Xtr, ytr)
+fwd.round(4).to_csv(os.path.join(RES, "forward_stepwise.csv"), index=False)
+print("\nForward stepwise (AIC) order: " + " -> ".join(fwd["added"]))
+print(f"BIC minimum at {int(fwd.loc[fwd['BIC'].idxmin(), 'step'])} features; "
+      f"Adj R² at 12 features = {fwd.loc[11, 'AdjR2']:.4f} vs all 17 = {fwd['AdjR2'].iloc[-1]:.4f}")
+
+fig, ax = plt.subplots(1, 2, figsize=(12, 4.2))
+ax[0].plot(fwd["step"], fwd["AIC"] / 1000, color=BLUE, lw=2, marker="o", ms=4, label="AIC")
+ax[0].plot(fwd["step"], fwd["BIC"] / 1000, color=ORANGE, lw=2, marker="s", ms=4, label="BIC")
+ax[0].axvline(len(selected), color=GRAY, ls="--", lw=1)
+ax[0].text(len(selected) + 0.2, 0.95, f"final subset = {len(selected)}", color=INK2, va="top", fontsize=9,
+           transform=ax[0].get_xaxis_transform())
+ax[0].set(title="Forward stepwise: AIC / BIC vs. # features", xlabel="# features", ylabel="information criterion (×1000)")
+ax[0].legend()
+ax[1].plot(fwd["step"], fwd["AdjR2"], color=BLUE, lw=2, marker="o", ms=4)
+ax[1].set_xticks(fwd["step"], [f"+{c}" for c in fwd["added"]], rotation=60, ha="right", fontsize=8)
+ax[1].axvline(len(selected), color=GRAY, ls="--", lw=1)
+ax[1].set(title="Forward stepwise: Adjusted R² as features enter", ylabel="Adjusted R² (train, log price)")
+fig.tight_layout()
+save(fig, "12_forward_stepwise.png")
+
 # ---------------------------------------------------------------------
 print("\n" + "=" * 70)
 print("4. MODELING - MODELS")
@@ -296,8 +355,28 @@ m3 = sm.OLS(ytr, sm.add_constant(Xtr[selected])).fit()
 M3_NAME = f"M3 MLR selected ({len(selected)} feat.)"
 results[M3_NAME] = dollar_metrics(yte, m3.predict(sm.add_constant(Xte[selected])), k=len(selected))
 cv_rows[M3_NAME] = cv_r2(LinearRegression(), Xtr[selected], ytr)
-with open(os.path.join(RES, "m3_ols_summary.txt"), "w") as f:
+with open(os.path.join(RES, "m3_ols_summary.txt"), "w", encoding="utf-8") as f:
     f.write(m3.summary().as_text())
+
+# M3 assumption tests: heteroscedasticity, normality, autocorrelation, and a robust-SE check
+bp_lm, bp_p, _, _ = het_breuschpagan(m3.resid, m3.model.exog)
+jb_stat, jb_p, skew_, kurt_ = jarque_bera(m3.resid)
+m3_hc3 = m3.get_robustcov_results(cov_type="HC3")
+hc3_p = pd.Series(m3_hc3.pvalues, index=m3.params.index).drop("const")
+diagnostics = {
+    "Breusch-Pagan LM": float(bp_lm), "Breusch-Pagan p": float(bp_p),
+    "Jarque-Bera": float(jb_stat), "Jarque-Bera p": float(jb_p),
+    "residual skew": float(skew_), "residual kurtosis": float(kurt_),
+    "Durbin-Watson": float(durbin_watson(m3.resid)),
+    "condition number (std. X)": float(np.linalg.cond(sm.add_constant(
+        (Xtr[selected] - Xtr[selected].mean()) / Xtr[selected].std()).values)),
+    "max VIF": float(vif_table(Xtr[selected]).max()),
+    "features significant with HC3 robust SE (p<0.05)": f"{int((hc3_p < 0.05).sum())}/{len(hc3_p)}",
+    "not significant with HC3": ", ".join(f"{c} (p={hc3_p[c]:.3f})" for c in hc3_p.index[hc3_p >= 0.05]) or "none",
+}
+print("\nM3 assumption checks:")
+for k, v in diagnostics.items():
+    print(f"  {k:<48s} {v if isinstance(v, str) else round(v, 4)}")
 
 # M4 MLR selected + zipcode one-hot (location fixed effect) <-- best linear model
 zip_levels = sorted(d["zipcode"].unique())
@@ -325,6 +404,8 @@ XtrT = train[CANDIDATES + ["zipcode"]]
 XteT = test[CANDIDATES + ["zipcode"]]
 rf = RandomForestRegressor(n_estimators=300, n_jobs=-1, random_state=SEED, min_samples_leaf=2).fit(XtrT, ytr)
 results["Random Forest (benchmark)"] = dollar_metrics(yte, rf.predict(XteT))
+cv_rows["Random Forest (benchmark)"] = cv_r2(
+    RandomForestRegressor(n_estimators=300, n_jobs=-1, random_state=SEED, min_samples_leaf=2), XtrT, ytr)
 hgb = HistGradientBoostingRegressor(max_iter=600, learning_rate=0.05, random_state=SEED).fit(XtrT, ytr)
 results["HistGradientBoosting (benchmark)"] = dollar_metrics(yte, hgb.predict(XteT))
 cv_rows["HistGradientBoosting (benchmark)"] = cv_r2(
@@ -360,8 +441,25 @@ for name, sf in [(M3_NAME, sf3), (M4_NAME, sf4)]:
                       "median_PI_width_$": float(width.median())}
     print(f"{name}: 95% PI coverage on test = {inside.mean()*100:.2f}%, median width = ${width.median():,.0f}")
 
-with open(os.path.join(RES, "metrics.json"), "w") as f:
+# PI calibration: nominal level vs. empirical coverage on the test set
+LEVELS = [0.50, 0.68, 0.80, 0.90, 0.95, 0.99]
+calib = {}
+for name, model, Xd in [(M3_NAME, m3, Xte[selected]), (M4_NAME, m4, Xte4)]:
+    row = {}
+    for lv in LEVELS:
+        s = model.get_prediction(sm.add_constant(Xd, has_constant="add")).summary_frame(alpha=1 - lv)
+        row[f"{int(lv*100)}%"] = float(((yte.values >= s["obs_ci_lower"].values) &
+                                        (yte.values <= s["obs_ci_upper"].values)).mean() * 100)
+    calib[name] = row
+calib_df = pd.DataFrame(calib).T
+calib_df.round(2).to_csv(os.path.join(RES, "pi_calibration.csv"))
+print("\nPI calibration (nominal -> empirical coverage %):\n" + calib_df.round(1).to_string())
+
+with open(os.path.join(RES, "metrics.json"), "w", encoding="utf-8") as f:
     json.dump({"selected_features": selected,
+               "forward_stepwise_order": list(fwd["added"]),
+               "m3_diagnostics": diagnostics,
+               "pi_calibration_%": calib,
                "rfecv_n_features": int(rfecv.n_features_),
                "lasso_alpha": float(lasso.alpha_),
                "backward_elim_removed": be_log,
@@ -477,6 +575,78 @@ a.set_yticks(range(len(sc)), sc.index)
 a.set(title=f"{M3_NAME}: standardized coefficients ± 95% CI",
       xlabel="effect on log(price) of +1 SD  (≈ % change ×100)")
 save(fig, "11_coefficients_ci.png")
+
+# ---- Fig 13: PI calibration ----
+fig, a = plt.subplots(figsize=(6.2, 5))
+nom = [lv * 100 for lv in LEVELS]
+a.plot([45, 100], [45, 100], color=INK2, ls="--", lw=1, label="perfect calibration")
+for (name, row), col, mk in zip(calib.items(), [BLUE, ORANGE], ["o", "s"]):
+    a.plot(nom, list(row.values()), color=col, lw=2, marker=mk, ms=6, label=name)
+for x_, y_ in zip(nom, calib[M4_NAME].values()):
+    a.annotate(f"{y_:.1f}", (x_, y_), xytext=(-12, 9), textcoords="offset points", fontsize=8, color=ORANGE)
+a.set(xlim=(45, 100), ylim=(45, 100), xlabel="nominal prediction-interval level (%)",
+      ylabel="empirical coverage on test set (%)", title="Prediction-interval calibration (4,284 test houses)")
+a.legend(loc="upper left", fontsize=8.5)
+save(fig, "13_pi_calibration.png")
+
+# ---- Fig 14: residual map (why zipcode helps) ----
+r3 = yte - sf3["mean"]
+r4 = yte - sf4["mean"]
+fig, ax = plt.subplots(1, 2, figsize=(12, 5.4), sharey=True, layout="constrained")
+for a, (nm, r) in zip(ax, [(M3_NAME, r3), (M4_NAME, r4)]):
+    sc_ = a.scatter(test["long"], test["lat"], c=r.clip(-0.6, 0.6), cmap="RdBu_r", vmin=-0.6, vmax=0.6,
+                    s=7, alpha=0.8, linewidths=0)
+    a.set(title=f"{nm}\nresidual SD = {r.std():.3f}", xlabel="longitude")
+    a.set_aspect(1 / np.cos(np.radians(47.5)))
+    a.grid(False)
+ax[0].set_ylabel("latitude")
+fig.colorbar(sc_, ax=ax, shrink=0.85, label="residual log(price)  (red = under-predicted)")
+fig.suptitle("Test-set residuals on the map: location clusters disappear after adding zipcode",
+             fontweight="bold")
+save(fig, "14_residual_map.png")
+
+# =====================================================================
+# 5b. Supplement: Auto Regression on the weekly median price
+#     (the assignment allows AR; the data are cross-sectional, so AR can only model
+#      the market-level time trend, not individual houses)
+# =====================================================================
+print("\n" + "=" * 70)
+print("5b. SUPPLEMENT - AUTO REGRESSION (weekly median price)")
+print("=" * 70)
+wk = d.set_index("date")["price"].resample("W").median().dropna()
+wk = wk.iloc[1:-1]  # drop the partial first/last week
+ylog = np.log(wk.values)
+H = 8  # hold out the last 8 weeks
+sel = ar_select_order(ylog[:-H], maxlag=6, ic="aic", trend="c")
+p_ar = max(sel.ar_lags) if sel.ar_lags else 1
+ar = AutoReg(ylog[:-H], lags=p_ar, trend="c").fit()
+fc = ar.get_prediction(start=len(ylog) - H, end=len(ylog) - 1)
+fc_mean, fc_ci = fc.predicted_mean, fc.conf_int(alpha=0.05)
+naive = np.repeat(ylog[-H - 1], H)
+ar_metrics = {
+    "weeks": int(len(wk)), "lag_order_AIC": int(p_ar), "holdout_weeks": H,
+    "AR_MAPE_%": float(np.mean(np.abs(np.exp(fc_mean) - wk.values[-H:]) / wk.values[-H:]) * 100),
+    "naive_MAPE_%": float(np.mean(np.abs(np.exp(naive) - wk.values[-H:]) / wk.values[-H:]) * 100),
+    "PI95_coverage_%": float(((ylog[-H:] >= fc_ci[:, 0]) & (ylog[-H:] <= fc_ci[:, 1])).mean() * 100),
+}
+print(f"  {len(wk)} weekly medians, AR({p_ar}) chosen by AIC")
+print(f"  last {H} weeks: AR MAPE = {ar_metrics['AR_MAPE_%']:.2f}%, naive (last value) MAPE = "
+      f"{ar_metrics['naive_MAPE_%']:.2f}%, 95% PI coverage = {ar_metrics['PI95_coverage_%']:.0f}%")
+with open(os.path.join(RES, "autoregression.json"), "w", encoding="utf-8") as f:
+    json.dump(ar_metrics, f, indent=2)
+
+fig, a = plt.subplots(figsize=(12, 4.2))
+a.plot(wk.index, wk.values / 1e3, color=GRAY, lw=1.5, marker="o", ms=3, label="weekly median price")
+a.plot(wk.index[:-H], np.exp(np.r_[np.full(p_ar, np.nan), ar.fittedvalues]) / 1e3, color=BLUE, lw=1.5,
+       label=f"AR({p_ar}) in-sample fit")
+a.fill_between(wk.index[-H:], np.exp(fc_ci[:, 0]) / 1e3, np.exp(fc_ci[:, 1]) / 1e3, color=AQUA, alpha=0.25,
+               label="95% forecast interval")
+a.plot(wk.index[-H:], np.exp(fc_mean) / 1e3, color=ORANGE, lw=2, marker="s", ms=4, label=f"AR forecast ({H} weeks)")
+a.axvline(wk.index[-H], color=INK2, ls="--", lw=0.8)
+a.set(title=f"Supplement: AR({p_ar}) on weekly median sale price - forecast MAPE {ar_metrics['AR_MAPE_%']:.1f}% "
+            f"(naive {ar_metrics['naive_MAPE_%']:.1f}%)", ylabel="median price (thousand USD)")
+a.legend(ncol=4, loc="upper left", fontsize=8.5)
+save(fig, "15_autoregression_weekly.png")
 
 # =====================================================================
 # 6. Deployment

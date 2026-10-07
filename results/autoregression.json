@@ -1,0 +1,8 @@
+{
+  "weeks": 55,
+  "lag_order_AIC": 3,
+  "holdout_weeks": 8,
+  "AR_MAPE_%": 4.563514912587021,
+  "naive_MAPE_%": 4.2666473484684,
+  "PI95_coverage_%": 75.0
+}

@@ -6,14 +6,14 @@
 <style>
   @page { size: A4; margin: 16mm 15mm; }
   :root { --ink:#0b0b0b; --ink2:#52514e; --blue:#2a78d6; --line:#e2e1dc; --bg:#f6f5f1; }
-  body { font-family: "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif; color: var(--ink);
+  body { font-family: "PingFang TC", "Heiti TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif; color: var(--ink);
          line-height: 1.65; font-size: 10.5pt; max-width: 900px; margin: 0 auto; background:#fff; }
   h1 { font-size: 21pt; margin: 0 0 4px; }
   h2 { font-size: 15pt; border-bottom: 2px solid var(--blue); padding-bottom: 3px; margin-top: 26px; page-break-after: avoid; }
   h3 { font-size: 12pt; margin: 16px 0 6px; page-break-after: avoid; }
   .sub { color: var(--ink2); margin-bottom: 14px; }
   table { border-collapse: collapse; width: 100%; font-size: 9pt; margin: 8px 0 12px; page-break-inside: avoid; }
-  th, td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; }
+  th, td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; vertical-align: top; }
   th { background: var(--bg); }
   td.n { text-align: right; font-variant-numeric: tabular-nums; }
   tr.hl td { background: #eaf2fc; font-weight: 600; }
@@ -21,9 +21,12 @@
   figure img { width: 100%; border: 1px solid var(--line); }
   figcaption { color: var(--ink2); font-size: 9pt; margin-top: 3px; }
   .box { background: var(--bg); border-left: 4px solid var(--blue); padding: 8px 12px; margin: 10px 0; page-break-inside: avoid; }
-  .todo { background: #fff4e5; border-left: 4px solid #eb6834; padding: 8px 12px; margin: 10px 0; }
+  .ok { color: #13804f; font-weight: 700; }
+  .warn { color: #b8501f; font-weight: 700; }
   code { background: var(--bg); padding: 0 3px; border-radius: 3px; font-size: 9.5pt; }
   .pb { page-break-before: always; }
+  .toc { columns: 2; font-size: 9.5pt; margin: 4px 0 10px; padding-left: 20px; }
+  .flow { width: 100%; margin: 6px 0 2px; }
 
   .msg { border-radius:8px; padding:8px 12px; margin:8px 0; page-break-inside:avoid; font-size:9.8pt; }
   .user { background:#eaf2fc; border-left:4px solid #2a78d6; }
@@ -35,13 +38,13 @@
 <body>
 
 <h1>HW2：King County 房價預測 — 多元線性回歸</h1>
-<div class="sub">學號 7115064191 ｜ 依循 CRISP-DM 流程 ｜ 主程式 <code>7115064191_hw2.py</code></div>
+<div class="sub">學號 7115064191 ｜ 依循 CRISP-DM 流程 ｜ 主程式 <code>7115064191_hw2.py</code> ｜ GitHub：<a href="https://github.com/A0966411725-png/HW2-Multiple-Linear-regression">A0966411725-png/HW2-Multiple-Linear-regression</a></div>
 
 <div class="box">
-<b>資料集來源</b>：House Sales in King County, USA（Kaggle，作者 harlfoxem）<br>
+<b>資料集來源</b>：House Sales in King County, USA（Kaggle，作者 harlfoxem，授權 CC0 公眾領域）<br>
 連結：<a href="https://www.kaggle.com/datasets/harlfoxem/housesalesprediction">https://www.kaggle.com/datasets/harlfoxem/housesalesprediction</a><br>
-內容：2014/05–2015/05 美國華盛頓州 King County（含西雅圖）21,613 筆房屋成交紀錄，<b>18 個特徵</b>，目標變數 <code>price</code>。<br>
-<b>研究脈絡</b>：本作業延伸自 HW1（台灣天氣預報資料管線，<a href="https://github.com/A0966411725-png/HW1-CWA-Weather">GitHub</a>）。HW1 著重「資料取得與呈現」，HW2 進一步進入「建模與評估」，以線性回歸量化各因素對房價的影響並給出含不確定性的預測。
+內容：2014/05–2015/05 美國華盛頓州 King County（含西雅圖）21,613 筆房屋成交紀錄，<b>18 個特徵</b>，目標變數 <code>price</code>。（因為沒有 Kaggle API 金鑰，檔案改從 GitHub 鏡像 Shreyas3108/house-price-prediction 下載，筆數與欄位都和 Kaggle 原檔相同。）<br>
+<b>研究脈絡</b>：本作業延伸自 HW1（台灣天氣預報資料管線，<a href="https://github.com/A0966411725-png/HW1-CWA-Weather">GitHub</a>）。HW1 著重「資料取得與呈現」，HW2 進一步進入「建模與評估」：用線性回歸量化各因素對房價的影響，並給出帶有不確定性的預測。選房價是因為它是回歸的經典題目，網路上有大量公開解法可以對照（第 7、9 節）。
 </div>
 
 <h3>重點結果</h3>
@@ -54,25 +57,71 @@
 <tr><td>HistGradientBoosting（主流解法對照）</td><td class="n">18</td><td class="n">0.905</td><td class="n">0.903</td><td class="n">137,215</td><td class="n">11.6%</td><td>–</td></tr>
 </table>
 
+<b>目錄</b>
+<ol class="toc">
+<li>Business Understanding</li><li>Data Understanding</li><li>Data Preparation</li><li>Modeling（特徵選擇、模型、Auto Regression 補充）</li>
+<li>Evaluation（指標、統計檢定、預測區間校準、成功標準檢核）</li><li>Deployment</li><li>網路主流解法比較與說明</li><li>GPT 輔助內容</li><li>NotebookLM 摘要</li><li>結論與限制</li>
+</ol>
+
+<svg class="flow" viewBox="0 0 900 118" xmlns="http://www.w3.org/2000/svg" font-family="PingFang TC, Microsoft JhengHei, sans-serif">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#8a8984"/></marker></defs>
+  <g font-size="12.5" text-anchor="middle">
+    <rect x="4" y="18" width="132" height="62" rx="8" fill="#eaf2fc" stroke="#2a78d6"/>
+    <text x="70" y="42" font-weight="700">1 Business</text><text x="70" y="62" fill="#52514e" font-size="11">估價 + 95% 區間</text>
+    <rect x="155" y="18" width="132" height="62" rx="8" fill="#eaf2fc" stroke="#2a78d6"/>
+    <text x="221" y="42" font-weight="700">2 Data Underst.</text><text x="221" y="62" fill="#52514e" font-size="11">18 特徵、偏態、共線</text>
+    <rect x="306" y="18" width="132" height="62" rx="8" fill="#eaf2fc" stroke="#2a78d6"/>
+    <text x="372" y="42" font-weight="700">3 Data Prep.</text><text x="372" y="62" fill="#52514e" font-size="11">清理、log、特徵工程</text>
+    <rect x="457" y="18" width="132" height="62" rx="8" fill="#eaf2fc" stroke="#2a78d6"/>
+    <text x="523" y="42" font-weight="700">4 Modeling</text><text x="523" y="62" fill="#52514e" font-size="11">5 法特徵選擇、M1–M4</text>
+    <rect x="608" y="18" width="132" height="62" rx="8" fill="#eaf2fc" stroke="#2a78d6"/>
+    <text x="674" y="42" font-weight="700">5 Evaluation</text><text x="674" y="62" fill="#52514e" font-size="11">CV、檢定、PI 校準</text>
+    <rect x="759" y="18" width="136" height="62" rx="8" fill="#eaf2fc" stroke="#2a78d6"/>
+    <text x="827" y="42" font-weight="700">6 Deployment</text><text x="827" y="62" fill="#52514e" font-size="11">pkl + predict.py</text>
+  </g>
+  <g stroke="#8a8984" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+    <line x1="137" y1="49" x2="153" y2="49"/><line x1="288" y1="49" x2="304" y2="49"/><line x1="439" y1="49" x2="455" y2="49"/>
+    <line x1="590" y1="49" x2="606" y2="49"/><line x1="741" y1="49" x2="757" y2="49"/>
+    <path d="M674,81 C674,110 70,110 70,83"/>
+  </g>
+  <text x="372" y="113" font-size="10.5" fill="#52514e" text-anchor="middle">評估結果回頭檢查商業目標（成功標準檢核，5.4 節）</text>
+</svg>
+
 <h2>1. Business Understanding（商業理解）</h2>
-<p><b>問題</b>：買方、賣方與仲介都需要一個「合理成交價」的參考。單一的點估計不夠，決策者還需要知道價格可能落在哪個範圍。</p>
+<p><b>問題</b>：買方、賣方與仲介都需要一個「合理成交價」的參考。單一的點估計不夠，決策者還需要知道價格可能落在哪個範圍，才能判斷開價是否偏高、議價空間多大。</p>
+<table>
+<tr><th>利害關係人</th><th>需求</th><th>模型提供的資訊</th></tr>
+<tr><td>買方</td><td>判斷開價是否合理</td><td>預測價與 95% 預測區間；高於區間上限代表可能買貴</td></tr>
+<tr><td>賣方 / 仲介</td><td>訂定開價、說明房屋價值來源</td><td>各因素的百分比影響（係數解讀），例如等級 +1 級約 +21%</td></tr>
+<tr><td>估價 / 貸款機構</td><td>估價要可解釋、可稽核</td><td>線性模型的係數、p 值、信賴區間都可以逐項檢查</td></tr>
+</table>
 <p><b>目標</b>：以線性回歸建立可解釋的房價模型，回答：(1) 哪些因素最影響房價、影響多大？(2) 給定一間房子的條件，預測價格與 95% 預測區間。</p>
-<p><b>成功標準</b>：測試集 R² ≥ 0.75、MAPE ≤ 20%（可解釋模型）；95% 預測區間的實際覆蓋率接近 95%；模型係數方向符合常識。</p>
+<p><b>成功標準</b>（在第 5.4 節逐項檢核）：測試集 R² ≥ 0.75、MAPE ≤ 20%；95% 預測區間的實際覆蓋率在 93–97% 之間；5-fold CV 與測試集結果一致（不過擬合）；係數方向符合常識。</p>
 
 <h2>2. Data Understanding（資料理解）</h2>
+<h3>2.1 欄位字典（18 個特徵 + 目標）</h3>
 <table>
-<tr><th>類別</th><th>特徵（共 18 個）</th></tr>
-<tr><td>面積</td><td>sqft_living, sqft_lot, sqft_above, sqft_basement, sqft_living15, sqft_lot15</td></tr>
-<tr><td>房屋結構</td><td>bedrooms, bathrooms, floors</td></tr>
-<tr><td>品質/景觀</td><td>grade (1–13), condition (1–5), view (0–4), waterfront (0/1)</td></tr>
-<tr><td>時間</td><td>yr_built, yr_renovated</td></tr>
-<tr><td>位置</td><td>zipcode, lat, long</td></tr>
+<tr><th>欄位</th><th>意義</th><th>型態 / 範圍</th></tr>
+<tr><td><b>price</b>（目標）</td><td>成交價（美元）</td><td>連續，$75K – $7.7M，中位數 $450K</td></tr>
+<tr><td>bedrooms / bathrooms</td><td>臥室數 / 衛浴數（0.5 = 只有馬桶洗手台）</td><td>離散，0–33 / 0–8</td></tr>
+<tr><td>sqft_living / sqft_lot</td><td>室內面積 / 土地面積（平方英尺）</td><td>連續，290–13,540 / 520–1.65M</td></tr>
+<tr><td>sqft_above / sqft_basement</td><td>地上面積 / 地下室面積（兩者相加 = sqft_living）</td><td>連續</td></tr>
+<tr><td>sqft_living15 / sqft_lot15</td><td>最近 15 戶鄰居的平均室內 / 土地面積</td><td>連續</td></tr>
+<tr><td>floors</td><td>樓層數</td><td>1–3.5</td></tr>
+<tr><td>waterfront</td><td>是否臨水</td><td>0/1（0.75% 為 1）</td></tr>
+<tr><td>view</td><td>景觀評分</td><td>序數 0–4</td></tr>
+<tr><td>condition</td><td>屋況</td><td>序數 1–5</td></tr>
+<tr><td>grade</td><td>King County 建築品質等級</td><td>序數 1–13</td></tr>
+<tr><td>yr_built / yr_renovated</td><td>建造年 / 翻修年（0 = 未翻修）</td><td>1900–2015</td></tr>
+<tr><td>zipcode / lat / long</td><td>郵遞區號 / 緯度 / 經度</td><td>70 個 zipcode；名目 / 連續</td></tr>
 </table>
+<h3>2.2 觀察</h3>
 <ul>
 <li>無缺失值；有 177 筆同一房屋重複成交（id 重複）；有 33 房、0 衛浴等明顯錯誤資料。</li>
 <li>價格嚴重右偏（偏態 4.02），取 log 後接近常態（偏態 0.43），因此以 <code>log(price)</code> 為建模目標。</li>
 <li>與價格相關最高的是 <code>sqft_living</code>(0.70)、<code>grade</code>(0.67)、<code>sqft_above</code>(0.61)、<code>sqft_living15</code>(0.59)、<code>bathrooms</code>(0.53)。</li>
 <li><code>sqft_basement = sqft_living − sqft_above</code> 為完全共線，需處理多重共線性。</li>
+<li>zipcode 雖然是數字，但大小沒有意義（名目變數），不能直接當數值放進回歸。</li>
 </ul>
 <figure><img src="figures/01_price_distribution.png"><figcaption>圖 1　價格分佈：原始值右偏，取 log 後接近常態</figcaption></figure>
 <figure><img src="figures/02_correlation_heatmap.png"><figcaption>圖 2　18 個特徵與價格的相關係數矩陣</figcaption></figure>
@@ -84,13 +133,14 @@
 <li><b>目標轉換</b>：<code>log_price = log(price)</code>，讓殘差較接近常態、變異數較穩定，係數可解讀為「百分比變化」。</li>
 <li><b>特徵工程</b>：
   <code>house_age = 成交年 − yr_built</code>；<code>is_renovated = yr_renovated &gt; 0</code>；<code>has_basement = sqft_basement &gt; 0</code>；面積欄位全部取 log。</li>
-<li><b>類別變數</b>：zipcode 是名目變數，不能當數值用，在 M4 改為 69 個 one-hot 虛擬變數（地段固定效果）。</li>
+<li><b>類別變數</b>：zipcode 在 M4 改為 69 個 one-hot 虛擬變數（70 區去掉 1 個基準區，代表地段固定效果）。</li>
 <li><b>切分</b>：80% 訓練（17,135）／20% 測試（4,284），random_state = 42；所有特徵選擇只在訓練集上進行，避免資料洩漏。</li>
 </ol>
+<p>處理後共有 17 個數值候選特徵：bedrooms, bathrooms, log_sqft_living, log_sqft_lot, floors, waterfront, view, condition, grade, log_sqft_above, has_basement, house_age, is_renovated, lat, long, log_sqft_living15, log_sqft_lot15。</p>
 
 <h2>4. Modeling（建模）</h2>
 <h3>4.1 特徵選擇（Feature Selection）</h3>
-<p>對 17 個候選特徵使用四種方法交叉驗證：</p>
+<p>對 17 個候選特徵使用五種方法交叉驗證：</p>
 <table>
 <tr><th>方法</th><th>做法</th><th>結果</th></tr>
 <tr><td>相關分析</td><td>|r| 與 log_price</td><td>grade、log_sqft_living、log_sqft_living15 最強</td></tr>
@@ -98,11 +148,14 @@
 <tr><td>Backward Elimination</td><td>OLS 逐步移除 p &gt; 0.05</td><td>移除 long（p = 0.81）</td></tr>
 <tr><td>RFECV</td><td>遞迴特徵消除 + 5-fold CV</td><td>最佳 16 個；12 個以後 CV R² 幾乎不再增加</td></tr>
 <tr><td>LassoCV</td><td>L1 正則化（α = 0.00037）</td><td>long 係數被壓到 0</td></tr>
+<tr><td>Forward Stepwise（佐證）</td><td>每步加入讓 AIC 最低的特徵</td><td>前 4 名 grade → lat → log_sqft_living → house_age；第 12 個之後 Adj R² 只再增加 0.002</td></tr>
 </table>
-<p><b>決策規則</b>：三種方法（Backward、RFECV、Lasso）中至少 2 票保留 → 再以 VIF ≤ 5 迭代修剪：每次取 VIF 最高的特徵與其最相關的夥伴，刪掉與目標相關較弱者。</p>
+<p><b>決策規則</b>：三種方法（Backward、RFECV、Lasso）中至少 2 票保留 → 再以 VIF ≤ 5 迭代修剪：每次取 VIF 最高的特徵與其最相關的夥伴，刪掉與目標相關較弱者。Forward Stepwise 不參與投票，只用來檢查「留多少個特徵才划算」。</p>
 <div class="box"><b>最終 12 個特徵</b>：bedrooms, log_sqft_living, log_sqft_lot, floors, waterfront, view, condition, grade, has_basement, house_age, is_renovated, lat<br>
 <b>刪除</b>：long（不顯著）、log_sqft_above（與 living 共線）、bathrooms、log_sqft_living15（與 living 高度相關）、log_sqft_lot15（與 lot 共線）</div>
 <figure><img src="figures/04_feature_selection.png"><figcaption>圖 4　左：RFECV 特徵數 vs CV R²；右：Lasso 標準化係數（藍＝最終保留）</figcaption></figure>
+<figure><img src="figures/12_forward_stepwise.png"><figcaption>圖 5　Forward Stepwise：左為 AIC/BIC，右為 Adjusted R² 隨特徵加入的變化。12 個特徵之後曲線已經平了</figcaption></figure>
+<p><b>和 Forward Stepwise 的比較</b>：Forward Stepwise 挑出的前 12 個特徵裡有 9 個和我們的子集相同；差別在它選了 bathrooms、log_sqft_living15、log_sqft_lot15，這三個都和已選的面積欄位高度相關。它的 12 特徵模型訓練集 Adj R² 是 0.770，我們的 M3 是 0.761，只差 0.009，但 M3 的最大 VIF 只有 4.4，係數比較穩定、也比較好解讀。我們選擇犧牲一點點擬合度，換取可解釋性。</p>
 
 <h3>4.2 模型</h3>
 <ul>
@@ -110,7 +163,7 @@
 <li><b>M2 多元線性回歸（全部 17 特徵）</b>：檢查特徵選擇是否損失太多。</li>
 <li><b>M3 多元線性回歸（12 特徵）</b>：主要的可解釋模型，所有變數 p &lt; 0.05、VIF ≤ 5。</li>
 <li><b>M4 = M3 + zipcode one-hot</b>：加入地段固定效果，仍是線性回歸。</li>
-<li><b>對照</b>：Ridge、Random Forest、HistGradientBoosting（Kaggle 上常見的樹模型解法）。</li>
+<li><b>對照</b>：Ridge（同 M4 設計）、Random Forest、HistGradientBoosting（Kaggle 上常見的樹模型解法）。</li>
 </ul>
 
 <h3>4.3 M3 係數解讀（log-linear）</h3>
@@ -121,15 +174,22 @@
 <tr><td>waterfront</td><td class="n">0.397</td><td>臨水 → 房價約 +49%</td></tr>
 <tr><td>lat</td><td class="n">1.337</td><td>緯度 +0.1°（往北、接近西雅圖市區）→ 約 +14%</td></tr>
 <tr><td>view</td><td class="n">0.071</td><td>景觀評分每 +1 → 約 +7%</td></tr>
+<tr><td>floors</td><td class="n">0.069</td><td>每多一層樓 → 約 +7%</td></tr>
 <tr><td>condition</td><td class="n">0.060</td><td>屋況每 +1 → 約 +6%</td></tr>
 <tr><td>is_renovated</td><td class="n">0.074</td><td>曾翻修 → 約 +8%</td></tr>
 <tr><td>house_age</td><td class="n">0.0032</td><td>控制品質後，老屋略貴（多位於成熟市區）</td></tr>
 <tr><td>bedrooms</td><td class="n">−0.018</td><td>面積固定下房間越多 → 每間越小，價格略降</td></tr>
 </table>
-<figure><img src="figures/11_coefficients_ci.png" style="width:75%"><figcaption>圖 5　M3 標準化係數與 95% 信賴區間（所有區間皆不跨 0）</figcaption></figure>
+<figure><img src="figures/11_coefficients_ci.png" style="width:75%"><figcaption>圖 6　M3 標準化係數與 95% 信賴區間（所有區間皆不跨 0）</figcaption></figure>
+
+<h3>4.4 補充：Auto Regression 試驗</h3>
+<p>作業允許嘗試 Auto Regression，所以我們也做了測試。不過 AR 是時間序列模型，用變數自己過去的值預測未來；本資料是「每間房子一筆」的橫斷面資料，AR 沒辦法預測個別房屋，只能預測整體市場的價格走勢。做法：把成交價彙總成<b>每週中位數</b>（55 週），用前 47 週訓練、AIC 選出落後階數 p = 3，預測最後 8 週。</p>
+<figure><img src="figures/15_autoregression_weekly.png"><figcaption>圖 7　AR(3) 預測每週中位房價：MAPE 4.6%，比「直接沿用上週值」的 naive 預測（4.3%）還差；95% 預測區間只涵蓋 8 週中的 6 週（75%）</figcaption></figure>
+<p><b>結論</b>：每週中位數的波動主要是雜訊，加上 2015 年 4 月的春季旺季跳升，這種季節性只有 55 週的資料學不出來，所以 AR 贏不了 naive 預測。房價主要由房屋本身的條件決定，因此主模型採用多元線性回歸，AR 只作為補充。</p>
 
 <h2 class="pb">5. Evaluation（評估）</h2>
-<p>評估指標：測試集 R²（log 與還原為美元兩種尺度）、Adjusted R²、5-fold CV R²、RMSE、MAE、MAPE，以及 95% 預測區間覆蓋率。</p>
+<h3>5.1 評估指標</h3>
+<p>測試集 R²（log 與還原為美元兩種尺度）、Adjusted R²、5-fold CV R²、RMSE、MAE、MAPE，以及 95% 預測區間覆蓋率。</p>
 <table>
 <tr><th>模型</th><th>R²(log)</th><th>Adj R²</th><th>CV R² (mean±sd)</th><th>R²(USD)</th><th>RMSE</th><th>MAE</th><th>MAPE</th></tr>
 <tr><td>M1 Simple LR</td><td class="n">0.453</td><td class="n">0.453</td><td class="n">0.455±0.008</td><td class="n">0.420</td><td class="n">296,181</td><td class="n">173,926</td><td class="n">33.1%</td></tr>
@@ -137,47 +197,90 @@
 <tr class="hl"><td>M3 MLR selected (12)</td><td class="n">0.761</td><td class="n">0.760</td><td class="n">0.761±0.006</td><td class="n">0.748</td><td class="n">195,199</td><td class="n">113,288</td><td class="n">20.3%</td></tr>
 <tr class="hl"><td>M4 MLR + zipcode</td><td class="n">0.878</td><td class="n">0.876</td><td class="n">0.879±0.003</td><td class="n">0.866</td><td class="n">142,491</td><td class="n">76,678</td><td class="n">13.7%</td></tr>
 <tr><td>Ridge (M4 design)</td><td class="n">0.878</td><td>–</td><td class="n">0.879±0.003</td><td class="n">0.866</td><td class="n">142,496</td><td class="n">76,681</td><td class="n">13.7%</td></tr>
-<tr><td>Random Forest</td><td class="n">0.893</td><td>–</td><td>–</td><td class="n">0.862</td><td class="n">144,690</td><td class="n">70,425</td><td class="n">12.3%</td></tr>
+<tr><td>Random Forest</td><td class="n">0.892</td><td>–</td><td class="n">0.889±0.004</td><td class="n">0.861</td><td class="n">144,842</td><td class="n">70,493</td><td class="n">12.3%</td></tr>
 <tr><td>HistGradientBoosting</td><td class="n">0.905</td><td>–</td><td class="n">0.903±0.002</td><td class="n">0.876</td><td class="n">137,215</td><td class="n">64,868</td><td class="n">11.6%</td></tr>
 </table>
 <ul>
 <li><b>特徵選擇有效</b>：M3 用 12 個特徵（少 5 個），R² 只比 M2 低 0.014，但所有係數顯著、無共線性，可解釋性大幅提高。</li>
-<li><b>地段是最大缺口</b>：加入 zipcode 後 R² 從 0.761 升到 0.878、MAPE 從 20.3% 降到 13.7%，「Location, location, location」。</li>
+<li><b>地段是最大缺口</b>：加入 zipcode 後 R² 從 0.761 升到 0.878、MAPE 從 20.3% 降到 13.7%，「Location, location, location」（圖 13 的殘差地圖可以直接看到）。</li>
 <li><b>穩定性</b>：CV R² 的標準差 ≤ 0.008，且 CV 與測試集結果一致，沒有過擬合。Ridge 與 OLS 幾乎相同，也表示共線性已處理好。</li>
-<li><b>預測區間可信</b>：M3 / M4 的 95% PI 在測試集實際覆蓋 94.4% / 94.0%，接近理論值 95%。</li>
+<li><b>美元尺度上 M4 的 RMSE 比 Random Forest 還低</b>（142,491 vs 144,842），只輸給 HistGradientBoosting。</li>
 </ul>
-<figure><img src="figures/05_simple_lr_ci_pi.png"><figcaption>圖 6　M1 單純線性回歸：擬合線、95% 信賴區間（橘，平均價格的不確定性）與 95% 預測區間（綠，單一房屋的不確定性）</figcaption></figure>
-<figure><img src="figures/06_mlr_selected_prediction_interval.png"><figcaption>圖 7　M3 預測圖：隨機 120 間測試房屋，依預測值排序；× 為落在 95% PI 外的房屋</figcaption></figure>
-<figure><img src="figures/07_mlr_zip_prediction_interval.png"><figcaption>圖 8　M4（加 zipcode）預測圖：預測區間明顯變窄（中位寬度 $474K → $330K）</figcaption></figure>
-<figure><img src="figures/08_actual_vs_predicted.png"><figcaption>圖 9　實際 vs 預測（虛線為完美預測）</figcaption></figure>
-<figure><img src="figures/09_residual_diagnostics.png"><figcaption>圖 10　M3 殘差診斷：殘差無明顯趨勢、近似常態（尾部略厚，峰度 4.0），Durbin-Watson = 1.99 無自相關</figcaption></figure>
-<figure><img src="figures/10_model_comparison.png"><figcaption>圖 11　模型比較（藍＝線性回歸家族，灰＝樹模型對照）</figcaption></figure>
+<figure><img src="figures/05_simple_lr_ci_pi.png"><figcaption>圖 8　M1 單純線性回歸：擬合線、95% 信賴區間（橘，平均價格的不確定性）與 95% 預測區間（綠，單一房屋的不確定性）</figcaption></figure>
+<figure><img src="figures/06_mlr_selected_prediction_interval.png"><figcaption>圖 9　M3 預測圖：隨機 120 間測試房屋，依預測值排序；× 為落在 95% PI 外的房屋</figcaption></figure>
+<figure><img src="figures/07_mlr_zip_prediction_interval.png"><figcaption>圖 10　M4（加 zipcode）預測圖：預測區間明顯變窄（中位寬度 $474K → $330K）</figcaption></figure>
+<figure><img src="figures/08_actual_vs_predicted.png"><figcaption>圖 11　實際 vs 預測（虛線為完美預測）</figcaption></figure>
+
+<h3>5.2 迴歸假設的統計檢定（M3，訓練集）</h3>
+<table>
+<tr><th>檢查項目</th><th>方法</th><th>結果</th><th>判讀</th></tr>
+<tr><td>多重共線性</td><td>VIF / 標準化條件數</td><td class="n">最大 VIF 4.44；條件數 4.4</td><td><span class="ok">通過</span>（VIF &lt; 5、條件數 &lt; 30）</td></tr>
+<tr><td>殘差自相關</td><td>Durbin-Watson</td><td class="n">1.99</td><td><span class="ok">通過</span>（接近 2 = 無自相關）</td></tr>
+<tr><td>殘差常態性</td><td>Jarque-Bera</td><td class="n">JB = 796，p &lt; 0.001；偏態 0.15、峰度 4.0</td><td><span class="warn">尾部略厚</span>；樣本 17,135 筆，依中央極限定理係數推論仍可靠</td></tr>
+<tr><td>變異數同質性</td><td>Breusch-Pagan</td><td class="n">LM = 605，p &lt; 0.001</td><td><span class="warn">有異質變異</span> → 改用 HC3 穩健標準誤重新檢定</td></tr>
+<tr><td>穩健性檢查</td><td>HC3 robust SE</td><td class="n">12 個係數中 11 個仍 p &lt; 0.05</td><td>只有 log_sqft_lot 變成 p = 0.078；結論不受影響</td></tr>
+</table>
+<figure><img src="figures/09_residual_diagnostics.png"><figcaption>圖 12　M3 殘差診斷：殘差無明顯趨勢、近似常態（尾部略厚，峰度 4.0）</figcaption></figure>
+<figure><img src="figures/14_residual_map.png"><figcaption>圖 13　測試集殘差地圖：M3（左）在西雅圖市區與 Bellevue、Mercer Island 一帶系統性低估（紅色群聚），在北邊 Shoreline 與南邊郊區高估（藍色群聚）；加入 zipcode 後（右）群聚消失，殘差標準差從 0.258 降到 0.185</figcaption></figure>
+
+<h3>5.3 預測區間校準</h3>
+<p>只看 95% 一個點不夠，所以再檢查 50%、68%、80%、90%、95%、99% 六種信賴水準下，測試集實際落在預測區間內的比例：</p>
+<table>
+<tr><th>名目水準</th><th>50%</th><th>68%</th><th>80%</th><th>90%</th><th>95%</th><th>99%</th></tr>
+<tr><td>M3 實際覆蓋率</td><td class="n">52.6%</td><td class="n">71.1%</td><td class="n">81.7%</td><td class="n">90.2%</td><td class="n">94.4%</td><td class="n">98.1%</td></tr>
+<tr><td>M4 實際覆蓋率</td><td class="n">57.4%</td><td class="n">73.5%</td><td class="n">83.4%</td><td class="n">90.5%</td><td class="n">94.0%</td><td class="n">97.6%</td></tr>
+</table>
+<figure><img src="figures/13_pi_calibration.png" style="width:62%"><figcaption>圖 14　預測區間校準圖：越接近虛線越準。90–95% 幾乎完全吻合；低水準時略為保守、99% 略不足，這和殘差「中間尖、尾部厚」（峰度 4.0）一致</figcaption></figure>
+<figure><img src="figures/10_model_comparison.png"><figcaption>圖 15　模型比較（藍＝線性回歸家族，灰＝樹模型對照）</figcaption></figure>
+
+<h3>5.4 成功標準檢核（回到 Business Understanding）</h3>
+<table>
+<tr><th>成功標準</th><th>M3（12 特徵）</th><th>M4（+ zipcode）</th></tr>
+<tr><td>測試集 R² ≥ 0.75</td><td><span class="ok">✔</span> 0.761</td><td><span class="ok">✔</span> 0.878</td></tr>
+<tr><td>MAPE ≤ 20%</td><td><span class="warn">✘</span> 20.3%（差 0.3 個百分點）</td><td><span class="ok">✔</span> 13.7%</td></tr>
+<tr><td>95% PI 覆蓋率在 93–97%</td><td><span class="ok">✔</span> 94.4%</td><td><span class="ok">✔</span> 94.0%</td></tr>
+<tr><td>CV 與測試一致（不過擬合）</td><td><span class="ok">✔</span> 0.761 vs 0.761</td><td><span class="ok">✔</span> 0.879 vs 0.878</td></tr>
+<tr><td>係數方向符合常識</td><td><span class="ok">✔</span> 面積、等級、臨水、景觀皆為正</td><td><span class="ok">✔</span></td></tr>
+</table>
+<p>結論：<b>M4 達成全部成功標準，作為部署模型</b>；M3 用來解釋「哪些因素影響房價」。</p>
 
 <h2>6. Deployment（部署）</h2>
 <ul>
-<li>執行主程式後，M4 模型（含特徵清單與 zipcode 類別）存成 <code>model/house_price_mlr.pkl</code>。</li>
+<li>執行主程式後，M4 模型（含特徵清單與 zipcode 類別）存成 <code>model/house_price_mlr.pkl</code>（用 <code>remove_data()</code> 去掉訓練資料，34 MB → 約 60 KB）。</li>
 <li><code>predict.py</code> 提供 <code>predict_price()</code> 函式與命令列介面，輸入房屋條件即輸出預測價與 95% CI / PI：
-<pre style="background:#f6f5f1;padding:8px;font-size:9pt">$ python3 predict.py --sqft_living 2000 --grade 8 --zipcode 98052 --lat 47.68
+<pre style="background:#f6f5f1;padding:8px;font-size:9pt">$ python predict.py --sqft_living 2000 --grade 8 --zipcode 98052 --lat 47.68
 Predicted price : $553,994
 95% CI (mean)   : $544,004 - $564,168
 95% PI (house)  : $388,300 - $790,393</pre></li>
+<li>解讀：同條件房屋的<b>平均</b>價格約 $544K–$564K（CI，窄）；<b>單一一間</b>房子的成交價有 95% 機率落在 $388K–$790K（PI，寬，因為包含個別房屋的差異）。</li>
+<li>程式在 macOS（python3）與 Windows（python）都測試過可以直接執行，執行紀錄會自動寫入 <code>results/run_log.txt</code>。</li>
 <li>後續可沿用 HW1 的 Streamlit 架構做成網頁表單；並應定期以新成交資料重訓（本資料只涵蓋 2014–2015，房價已大幅變動）。</li>
 </ul>
 
 <h2 class="pb">7. 網路主流解法比較與說明</h2>
+<p>此資料集在 Kaggle 是 Dataset（不是 Competition），<b>沒有排行榜名次</b>，所以改和網路上公開的解法（Kaggle Notebook、GitHub、論文，見第 9 節 NotebookLM 的 7 個來源）回報的 R² 對照：</p>
 <table>
-<tr><th>常見做法</th><th>說明</th><th>本作業對應結果</th></tr>
-<tr><td>直接對原始 price 做線性回歸</td><td>最常見的入門做法，未處理右偏與共線性</td><td>本作業改用 log(price)，殘差較常態、PI 才有意義</td></tr>
-<tr><td>log 轉換 + zipcode 虛擬變數</td><td>進階線性解法，把地段效果納入</td><td>M4：R² 0.878、MAPE 13.7%</td></tr>
-<tr><td>Ridge / Lasso 正則化</td><td>處理共線性與特徵選擇</td><td>與 OLS 幾乎相同，表示共線性已被特徵選擇處理</td></tr>
-<tr><td>樹模型（Random Forest、XGBoost、LightGBM）</td><td>Kaggle 上準確度最高的主流解法，可自動捕捉非線性與交互作用</td><td>HistGradientBoosting：R² 0.905、MAPE 11.6%</td></tr>
+<tr><th>常見做法</th><th>網路上回報的 R²</th><th>本作業對應結果</th></tr>
+<tr><td>單純線性回歸（price ~ sqft_living）</td><td class="n">≈ 0.49</td><td>M1：0.453（log 尺度，已移除錯誤資料）</td></tr>
+<tr><td>多元線性回歸（原始 price、未處理共線性）</td><td class="n">≈ 0.65–0.70</td><td>M2：0.775、M3：0.761</td></tr>
+<tr><td>多項式 + Ridge 正則化</td><td class="n">≈ 0.70–0.75</td><td>Ridge：0.878（與 OLS 幾乎相同，表示共線性已處理）</td></tr>
+<tr><td>log 轉換 + zipcode 虛擬變數</td><td>—</td><td><b>M4：0.878、MAPE 13.7%</b></td></tr>
+<tr><td>樹模型（Random Forest、XGBoost、LightGBM）</td><td class="n">≈ 0.85–0.87</td><td>RF：0.892、HistGradientBoosting：0.905</td></tr>
 </table>
-<p><b>比較結論</b>：樹模型準確度最高，但 M4 線性回歸只差約 2–3 個百分點（R² 0.878 vs 0.905），卻有三個優點：(1) 每個係數都可解讀成「百分比影響」；(2) 有統計推論（p 值、係數信賴區間）；(3) 能直接給出理論上正確且實測覆蓋率 94% 的預測區間，樹模型則需要額外的 quantile regression 或 conformal prediction。若目標是解釋與估價範圍，線性回歸更合適；若只求點預測準確度，則選梯度提升樹。</p>
+<table>
+<tr><th>面向</th><th>多元線性回歸（M4）</th><th>梯度提升樹（HGB）</th></tr>
+<tr><td>準確度</td><td>R² 0.878、MAPE 13.7%</td><td>R² 0.905、MAPE 11.6%</td></tr>
+<tr><td>可解釋性</td><td>每個係數都可以讀成「百分比影響」，有 p 值與信賴區間</td><td>黑盒，需要 SHAP 等工具輔助</td></tr>
+<tr><td>預測區間</td><td>理論公式直接給出，實測覆蓋率 94%，校準良好</td><td>需要額外的 quantile regression 或 conformal prediction</td></tr>
+<tr><td>非線性、交互作用</td><td>需要人工設計（log、zipcode one-hot）</td><td>自動學習</td></tr>
+</table>
+<p><b>比較結論</b>：樹模型準確度最高，但 M4 線性回歸只差約 2–3 個百分點（R² 0.878 vs 0.905），而且已經超過網路上常見的樹模型成績（0.85–0.87）。線性回歸能做到這個程度，關鍵是三件事：log 轉換、系統化的特徵選擇、zipcode 地段固定效果。若目標是解釋與估價範圍，線性回歸更合適；若只求點預測準確度，則選梯度提升樹。</p>
 
 <h2 class="pb">8. GPT 輔助內容（AI 對話過程）</h2>
 <div class="box">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07<br>
-說明：本作業的 AI 協助是用 Claude Code 完成的（不是 ChatGPT），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。</div>
+說明：本作業的 AI 協助是用 Claude Code 完成的（不是 ChatGPT），以下為對話過程整理（工具執行的細節已省略）。完整對話紀錄另附 <code>7115064191_ai_conversation.pdf</code>。作業分兩段完成：第一段在 Mac 上建立分析，第二段在 Windows 電腦上透過 GitHub 同步後補強。</div>
 
+<h3>第一段（Mac）：建立完整分析</h3>
 <div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW1 在我的 GitHub（幫我在側邊欄打開）</div>
 <div class="msg ai"><div class="who">AI</div>在側邊欄瀏覽器開了 GitHub，不過當時還找不到你的帳號，所以請你提供 repo 連結或使用者名稱。也先整理了 HW2 的要求：Kaggle 資料集要有 10–20 個特徵、CRISP-DM 六個步驟、特徵選擇、模型評估、含預測區間的預測圖。</div>
 
@@ -217,6 +320,16 @@ Predicted price : $553,994
 <div class="msg user"><div class="who">學生</div>把和你的對話匯出成 PDF；在 NotebookLM 研究網路上同主題的解法，寫一份 100 字以上的摘要貼進報告。做給我。</div>
 <div class="msg ai"><div class="who">AI</div>在 NotebookLM（Gemini Notebook）建立筆記本，加入 7 個網路來源（Kaggle 資料集頁、多個 GitHub / nbviewer 上的 King County 房價 Notebook、AI Planet 上的 Notebook、ITM Conferences 2025 的論文），請它整理主流解法並寫摘要，再把摘要貼進報告第 9 節，同時產出這份對話紀錄 PDF。</div>
 
+<h3>第二段（Windows）：依評分標準補強</h3>
+<div class="msg user"><div class="who">學生</div>（貼上評分標準截圖）我的 GitHub 已有這份作業，因為我會用不同電腦做作業，所以如果有更改或是要提醒另外一個 Claude，要寫在 CLAUDE.md（也在 GitHub）。評分標準越完整越好，讓分數盡可能高。</div>
+<div class="msg ai"><div class="who">AI</div>從 GitHub 取得最新版本，把本機資料夾接上 GitHub repo。在 Windows 上安裝套件時，最新版 pandas / scikit-learn 的 DLL 被 Windows「應用程式控制原則」封鎖，改用虛擬環境安裝 pandas 2.2.3 + scikit-learn 1.5.2 後成功執行，且重新執行的數字和 Mac 版完全一致（可重現）。另外修正 Windows 主控台無法印出「²」的編碼問題。</div>
+<div class="msg ai"><div class="who">AI</div>對照評分標準逐項補強：
+<ul>
+<li><b>特徵選擇與評估（25%）</b>：新增 Forward Stepwise（AIC/BIC）佐證；新增 Breusch-Pagan、Jarque-Bera 檢定，發現有異質變異，改用 HC3 穩健標準誤確認 12 個係數中 11 個仍顯著；補上 Random Forest 的 5-fold CV。</li>
+<li><b>結果說服力（15%）</b>：新增預測區間校準圖（6 種信賴水準）與殘差地圖，直接看出 zipcode 消除了地段造成的系統性誤差。</li>
+<li><b>作業選項</b>：補做 Auto Regression（每週中位房價 AR(3)），並如實說明它贏不了 naive 預測、不適合當主模型的原因。</li>
+<li><b>文件（50%）</b>：加上 CRISP-DM 流程圖、欄位字典、利害關係人表、成功標準檢核表、網路解法 R² 對照表、結論與限制。</li>
+</ul></div>
 
 <h2 class="pb">9. NotebookLM 摘要</h2>
 <div class="box">工具：Google NotebookLM（Gemini Notebook），筆記本「King County House Price Prediction Models」，2026-10-07。<br>
@@ -228,5 +341,20 @@ Predicted price : $553,994
 <p><b>對本作業的啟示</b>：多元線性回歸是建構預測區間最直接的工具。要縮小和樹模型的準確度差距，前處理必須對房價做 log 轉換以符合殘差常態假設，用 VIF 或逐步回歸排除共線性變數，並對 zipcode 等區域特徵適當編碼，才能在保有區間估計優勢的同時達到最好的預測成效。</p>
 </div>
 <div class="box"><b>與本作業結果對照</b>：NotebookLM 整理的網路解法中，多元線性回歸 R² 約 0.65–0.70、樹模型約 0.85–0.87。本作業依照這些建議做了 log 轉換、VIF + 多種方法的特徵選擇，以及 zipcode one-hot，線性模型 M4 達到 R² 0.878，已追平網路上常見的樹模型水準；而且 95% 預測區間實測覆蓋率 94%，正好補上樹模型「難以給出預測區間」的缺點。</div>
+
+<h2>10. 結論與限制</h2>
+<h3>結論</h3>
+<ol>
+<li><b>影響房價最大的因素</b>依序是建築等級、室內面積、地段（緯度 / zipcode）、臨水與景觀；所有係數方向都符合常識。</li>
+<li><b>特徵選擇</b>用 5 種方法交叉驗證，從 17 個候選特徵選出 12 個，R² 只損失 0.014，卻消除了共線性。</li>
+<li><b>地段固定效果</b>（zipcode one-hot）是線性模型最大的進步來源：R² 0.761 → 0.878，殘差地圖上的地段群聚因此消失。</li>
+<li><b>預測區間可信</b>：95% PI 實測覆蓋 94%，校準曲線在 90–95% 幾乎與理想線重合，可以直接用於估價範圍。</li>
+</ol>
+<h3>限制與未來改進</h3>
+<ul>
+<li>資料只涵蓋 2014/05–2015/05，現在的房價水準已經不同，實際使用前必須用新資料重訓。</li>
+<li>殘差有異質變異（Breusch-Pagan p &lt; 0.001），高價房的預測區間可能偏窄；可以改用加權最小平方法（WLS）或 conformal prediction 修正。</li>
+<li>線性模型沒有納入交互作用（例如「臨水 × 面積」）；可以加入交互項或樣條（spline）函數，進一步縮小和樹模型的差距。</li>
+</ul>
 </body>
 </html>

@@ -65,7 +65,7 @@ condition             1.25
 waterfront            1.20
 is_renovated          1.15
 lat                   1.14
-Backward elimination removed: [('long', 0.8069568263135951)]
+Backward elimination removed: [('long', 0.8069568263133696)]
 RFECV optimal #features = 16
 LassoCV alpha = 0.00037, non-zero = 17
 
@@ -92,9 +92,26 @@ log_sqft_lot15                  0.123   6.585          True           1         
 FINAL SELECTED (12): ['bedrooms', 'log_sqft_living', 'log_sqft_lot', 'floors', 'waterfront', 'view', 'condition', 'grade', 'has_basement', 'house_age', 'is_renovated', 'lat']
   [fig] figures/04_feature_selection.png
 
+Forward stepwise (AIC) order: grade -> lat -> log_sqft_living -> house_age -> view -> bathrooms -> log_sqft_living15 -> waterfront -> condition -> floors -> bedrooms -> log_sqft_lot15 -> is_renovated -> log_sqft_lot -> has_basement -> log_sqft_above -> long
+BIC minimum at 16 features; Adj R² at 12 features = 0.7702 vs all 17 = 0.7722
+  [fig] figures/12_forward_stepwise.png
+
 ======================================================================
 4. MODELING - MODELS
 ======================================================================
+
+M3 assumption checks:
+  Breusch-Pagan LM                                 604.5933
+  Breusch-Pagan p                                  0.0
+  Jarque-Bera                                      796.2174
+  Jarque-Bera p                                    0.0
+  residual skew                                    0.1543
+  residual kurtosis                                4.0099
+  Durbin-Watson                                    1.9927
+  condition number (std. X)                        4.4099
+  max VIF                                          4.4362
+  features significant with HC3 robust SE (p<0.05) 11/12
+  not significant with HC3                         log_sqft_lot (p=0.078)
 
 ======================================================================
 5. EVALUATION
@@ -104,11 +121,16 @@ M1 Simple LR (log_sqft_living)     0.4530     0.4528                   0.4550   
 M2 MLR all (17 feat.)              0.7748     0.7739                   0.7715           0.0059  0.7681  187261.5574  110552.5837  19.7509
 M3 MLR selected (12 feat.)         0.7611     0.7604                   0.7609           0.0055  0.7481  195198.6595  113288.4819  20.3019
 M4 MLR selected + zipcode one-hot  0.8781     0.8757                   0.8789           0.0027  0.8657  142490.7931   76677.6776  13.7389
-Ridge (M4 design)                  0.8781        NaN                   0.8789           0.0027  0.8657  142496.3166   76681.3693  13.7394
-Random Forest (benchmark)          0.8925        NaN                      NaN              NaN  0.8616  144690.2052   70425.5321  12.2740
+Ridge (M4 design)                  0.8781        NaN                   0.8789           0.0027  0.8657  142496.3165   76681.3693  13.7394
+Random Forest (benchmark)          0.8924        NaN                   0.8889           0.0037  0.8613  144842.2972   70493.2392  12.2821
 HistGradientBoosting (benchmark)   0.9053        NaN                   0.9032           0.0019  0.8755  137215.3206   64867.8646  11.6240
 M3 MLR selected (12 feat.): 95% PI coverage on test = 94.40%, median width = $473,977
 M4 MLR selected + zipcode one-hot: 95% PI coverage on test = 94.02%, median width = $330,002
+
+PI calibration (nominal -> empirical coverage %):
+                                    50%   68%   80%   90%   95%   99%
+M3 MLR selected (12 feat.)         52.6  71.1  81.7  90.2  94.4  98.1
+M4 MLR selected + zipcode one-hot  57.4  73.5  83.4  90.5  94.0  97.6
   [fig] figures/05_simple_lr_ci_pi.png
   [fig] figures/06_mlr_selected_prediction_interval.png
   [fig] figures/07_mlr_zip_prediction_interval.png
@@ -116,6 +138,15 @@ M4 MLR selected + zipcode one-hot: 95% PI coverage on test = 94.02%, median widt
   [fig] figures/09_residual_diagnostics.png
   [fig] figures/10_model_comparison.png
   [fig] figures/11_coefficients_ci.png
+  [fig] figures/13_pi_calibration.png
+  [fig] figures/14_residual_map.png
+
+======================================================================
+5b. SUPPLEMENT - AUTO REGRESSION (weekly median price)
+======================================================================
+  55 weekly medians, AR(3) chosen by AIC
+  last 8 weeks: AR MAPE = 4.56%, naive (last value) MAPE = 4.27%, 95% PI coverage = 75%
+  [fig] figures/15_autoregression_weekly.png
 
 ======================================================================
 6. DEPLOYMENT
