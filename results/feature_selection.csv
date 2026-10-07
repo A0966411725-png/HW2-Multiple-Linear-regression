@@ -1,0 +1,18 @@
+,|r| with log_price,VIF,BackwardElim,RFECV_rank,Lasso_coef(std),votes,selected
+bedrooms,0.3509,1.8349,True,1,-0.019,3,True
+bathrooms,0.5473,3.3218,True,1,0.0485,3,False
+log_sqft_living,0.6746,19.6216,True,1,0.0724,3,True
+log_sqft_lot,0.1405,6.9109,True,1,0.0121,3,True
+floors,0.3081,2.3858,True,1,0.0232,3,True
+waterfront,0.1791,1.1996,True,1,0.0346,3,True
+view,0.3415,1.376,True,1,0.0468,3,True
+condition,0.0345,1.2478,True,1,0.0412,3,True
+grade,0.7021,3.2065,True,1,0.193,3,True
+log_sqft_above,0.5851,19.4772,True,1,0.0735,3,False
+has_basement,0.2123,4.5685,True,1,0.0365,3,True
+house_age,0.0749,2.3827,True,1,0.1058,3,True
+is_renovated,0.1159,1.1492,True,1,0.0142,3,True
+lat,0.4517,1.1426,True,1,0.1832,3,True
+long,0.0482,1.5943,False,2,-0.0002,0,False
+log_sqft_living15,0.6066,2.8627,True,1,0.07,3,False
+log_sqft_lot15,0.1232,6.5851,True,1,-0.029,3,False

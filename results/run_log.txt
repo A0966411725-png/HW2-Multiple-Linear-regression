@@ -1,0 +1,126 @@
+======================================================================
+1. BUSINESS UNDERSTANDING
+======================================================================
+Goal : predict house sale price in King County (Seattle area) so that
+       buyers / sellers / agents can get a fair price estimate with an
+       uncertainty range (95% prediction interval).
+KPI  : test R², RMSE, MAE, MAPE; PI coverage close to 95%.
+
+======================================================================
+2. DATA UNDERSTANDING
+======================================================================
+shape = (21613, 21)
+features = 18 (+ id, date, target price)
+missing values = 0, duplicated ids = 177
+                    mean        std       min         max
+price          540088.14  367127.20  75000.00  7700000.00
+bedrooms            3.37       0.93      0.00       33.00
+bathrooms           2.11       0.77      0.00        8.00
+sqft_living      2079.90     918.44    290.00    13540.00
+sqft_lot        15106.97   41420.51    520.00  1651359.00
+floors              1.49       0.54      1.00        3.50
+waterfront          0.01       0.09      0.00        1.00
+view                0.23       0.77      0.00        4.00
+condition           3.41       0.65      1.00        5.00
+grade               7.66       1.18      1.00       13.00
+sqft_above       1788.39     828.09    290.00     9410.00
+sqft_basement     291.51     442.58      0.00     4820.00
+yr_built         1971.01      29.37   1900.00     2015.00
+yr_renovated       84.40     401.68      0.00     2015.00
+zipcode         98077.94      53.51  98001.00    98199.00
+lat                47.56       0.14     47.16       47.78
+long             -122.21       0.14   -122.52     -121.32
+sqft_living15    1986.55     685.39    399.00     6210.00
+sqft_lot15      12768.46   27304.18    651.00   871200.00
+  [fig] figures/01_price_distribution.png
+  [fig] figures/02_correlation_heatmap.png
+  [fig] figures/03_top_features_scatter.png
+
+======================================================================
+3. DATA PREPARATION
+======================================================================
+rows: 21613 -> 21419 (removed duplicates sales & impossible records)
+engineered: log_price, house_age, is_renovated, has_basement, log of area columns
+zipcode is nominal -> excluded from numeric MLR, used later as one-hot (location effect)
+train = 17135, test = 4284 (80/20 split, seed=42)
+
+======================================================================
+4. MODELING - FEATURE SELECTION
+======================================================================
+VIF (all candidates):
+log_sqft_living      19.62
+log_sqft_above       19.48
+log_sqft_lot          6.91
+log_sqft_lot15        6.59
+has_basement          4.57
+bathrooms             3.32
+grade                 3.21
+log_sqft_living15     2.86
+floors                2.39
+house_age             2.38
+bedrooms              1.83
+long                  1.59
+view                  1.38
+condition             1.25
+waterfront            1.20
+is_renovated          1.15
+lat                   1.14
+Backward elimination removed: [('long', 0.8069568263135951)]
+RFECV optimal #features = 16
+LassoCV alpha = 0.00037, non-zero = 17
+
+Feature selection summary:
+                   |r| with log_price     VIF  BackwardElim  RFECV_rank  Lasso_coef(std)  votes  selected
+bedrooms                        0.351   1.835          True           1           -0.019      3      True
+bathrooms                       0.547   3.322          True           1            0.048      3     False
+log_sqft_living                 0.675  19.622          True           1            0.072      3      True
+log_sqft_lot                    0.141   6.911          True           1            0.012      3      True
+floors                          0.308   2.386          True           1            0.023      3      True
+waterfront                      0.179   1.200          True           1            0.035      3      True
+view                            0.341   1.376          True           1            0.047      3      True
+condition                       0.035   1.248          True           1            0.041      3      True
+grade                           0.702   3.206          True           1            0.193      3      True
+log_sqft_above                  0.585  19.477          True           1            0.073      3     False
+has_basement                    0.212   4.568          True           1            0.036      3      True
+house_age                       0.075   2.383          True           1            0.106      3      True
+is_renovated                    0.116   1.149          True           1            0.014      3      True
+lat                             0.452   1.143          True           1            0.183      3      True
+long                            0.048   1.594         False           2           -0.000      0     False
+log_sqft_living15               0.607   2.863          True           1            0.070      3     False
+log_sqft_lot15                  0.123   6.585          True           1           -0.029      3     False
+
+FINAL SELECTED (12): ['bedrooms', 'log_sqft_living', 'log_sqft_lot', 'floors', 'waterfront', 'view', 'condition', 'grade', 'has_basement', 'house_age', 'is_renovated', 'lat']
+  [fig] figures/04_feature_selection.png
+
+======================================================================
+4. MODELING - MODELS
+======================================================================
+
+======================================================================
+5. EVALUATION
+======================================================================
+                                   R2_log  AdjR2_log  CV_R2_log (5-fold mean)  CV_R2_log (std)    R2_$       RMSE_$        MAE_$   MAPE_%
+M1 Simple LR (log_sqft_living)     0.4530     0.4528                   0.4550           0.0079  0.4199  296180.7338  173926.2715  33.1346
+M2 MLR all (17 feat.)              0.7748     0.7739                   0.7715           0.0059  0.7681  187261.5574  110552.5837  19.7509
+M3 MLR selected (12 feat.)         0.7611     0.7604                   0.7609           0.0055  0.7481  195198.6595  113288.4819  20.3019
+M4 MLR selected + zipcode one-hot  0.8781     0.8757                   0.8789           0.0027  0.8657  142490.7931   76677.6776  13.7389
+Ridge (M4 design)                  0.8781        NaN                   0.8789           0.0027  0.8657  142496.3166   76681.3693  13.7394
+Random Forest (benchmark)          0.8925        NaN                      NaN              NaN  0.8616  144690.2052   70425.5321  12.2740
+HistGradientBoosting (benchmark)   0.9053        NaN                   0.9032           0.0019  0.8755  137215.3206   64867.8646  11.6240
+M3 MLR selected (12 feat.): 95% PI coverage on test = 94.40%, median width = $473,977
+M4 MLR selected + zipcode one-hot: 95% PI coverage on test = 94.02%, median width = $330,002
+  [fig] figures/05_simple_lr_ci_pi.png
+  [fig] figures/06_mlr_selected_prediction_interval.png
+  [fig] figures/07_mlr_zip_prediction_interval.png
+  [fig] figures/08_actual_vs_predicted.png
+  [fig] figures/09_residual_diagnostics.png
+  [fig] figures/10_model_comparison.png
+  [fig] figures/11_coefficients_ci.png
+
+======================================================================
+6. DEPLOYMENT
+======================================================================
+  saved model/house_price_mlr.pkl  (M4: selected features + zipcode)
+  demo house id=7283900521: actual $352,500, predicted $365,494 (95% PI $256,155 - $521,502)
+
+Done.

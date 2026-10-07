@@ -1,0 +1,139 @@
+{
+  "selected_features": [
+    "bedrooms",
+    "log_sqft_living",
+    "log_sqft_lot",
+    "floors",
+    "waterfront",
+    "view",
+    "condition",
+    "grade",
+    "has_basement",
+    "house_age",
+    "is_renovated",
+    "lat"
+  ],
+  "rfecv_n_features": 16,
+  "lasso_alpha": 0.0003667757018473571,
+  "backward_elim_removed": [
+    [
+      "long",
+      0.8069568263135951
+    ]
+  ],
+  "models": {
+    "M1 Simple LR (log_sqft_living)": {
+      "R2_log": 0.452951,
+      "AdjR2_log": 0.452823,
+      "CV_R2_log (5-fold mean)": 0.454984,
+      "CV_R2_log (std)": 0.00785,
+      "R2_$": 0.419941,
+      "RMSE_$": 296180.733755,
+      "MAE_$": 173926.271522,
+      "MAPE_%": 33.134637
+    },
+    "M2 MLR all (17 feat.)": {
+      "R2_log": 0.774761,
+      "AdjR2_log": 0.773863,
+      "CV_R2_log (5-fold mean)": 0.771521,
+      "CV_R2_log (std)": 0.005893,
+      "R2_$": 0.768124,
+      "RMSE_$": 187261.557427,
+      "MAE_$": 110552.583679,
+      "MAPE_%": 19.750888
+    },
+    "M3 MLR selected (12 feat.)": {
+      "R2_log": 0.761101,
+      "AdjR2_log": 0.76043,
+      "CV_R2_log (5-fold mean)": 0.760866,
+      "CV_R2_log (std)": 0.005538,
+      "R2_$": 0.748051,
+      "RMSE_$": 195198.659469,
+      "MAE_$": 113288.481885,
+      "MAPE_%": 20.301948
+    },
+    "M4 MLR selected + zipcode one-hot": {
+      "R2_log": 0.878095,
+      "AdjR2_log": 0.875745,
+      "CV_R2_log (5-fold mean)": 0.878889,
+      "CV_R2_log (std)": 0.002706,
+      "R2_$": 0.865744,
+      "RMSE_$": 142490.793144,
+      "MAE_$": 76677.677619,
+      "MAPE_%": 13.738872
+    },
+    "Ridge (M4 design)": {
+      "R2_log": 0.878092,
+      "AdjR2_log": NaN,
+      "CV_R2_log (5-fold mean)": 0.878889,
+      "CV_R2_log (std)": 0.002703,
+      "R2_$": 0.865734,
+      "RMSE_$": 142496.31664,
+      "MAE_$": 76681.369295,
+      "MAPE_%": 13.739388
+    },
+    "Random Forest (benchmark)": {
+      "R2_log": 0.892546,
+      "AdjR2_log": NaN,
+      "CV_R2_log (5-fold mean)": NaN,
+      "CV_R2_log (std)": NaN,
+      "R2_$": 0.861568,
+      "RMSE_$": 144690.205217,
+      "MAE_$": 70425.532112,
+      "MAPE_%": 12.273978
+    },
+    "HistGradientBoosting (benchmark)": {
+      "R2_log": 0.905273,
+      "AdjR2_log": NaN,
+      "CV_R2_log (5-fold mean)": 0.903168,
+      "CV_R2_log (std)": 0.001885,
+      "R2_$": 0.875502,
+      "RMSE_$": 137215.320576,
+      "MAE_$": 64867.864595,
+      "MAPE_%": 11.62397
+    }
+  },
+  "interval_coverage": {
+    "M3 MLR selected (12 feat.)": {
+      "PI95_coverage_%": 94.39775910364145,
+      "median_PI_width_$": 473976.9679448827
+    },
+    "M4 MLR selected + zipcode one-hot": {
+      "PI95_coverage_%": 94.02427637721755,
+      "median_PI_width_$": 330001.6346644811
+    }
+  },
+  "m3_coefficients": {
+    "const": -55.83034,
+    "bedrooms": -0.017515,
+    "log_sqft_living": 0.459599,
+    "log_sqft_lot": -0.00543,
+    "floors": 0.06878,
+    "waterfront": 0.39666,
+    "view": 0.070521,
+    "condition": 0.059834,
+    "grade": 0.190538,
+    "has_basement": 0.015186,
+    "house_age": 0.003196,
+    "is_renovated": 0.074356,
+    "lat": 1.336959
+  },
+  "m3_pvalues": {
+    "const": 0.0,
+    "bedrooms": 0.0,
+    "log_sqft_living": 0.0,
+    "log_sqft_lot": 0.0442,
+    "floors": 0.0,
+    "waterfront": 0.0,
+    "view": 0.0,
+    "condition": 0.0,
+    "grade": 0.0,
+    "has_basement": 0.001728,
+    "house_age": 0.0,
+    "is_renovated": 0.0,
+    "lat": 0.0
+  },
+  "rows_after_cleaning": 21419,
+  "train_rows": 17135,
+  "test_rows": 4284
+}

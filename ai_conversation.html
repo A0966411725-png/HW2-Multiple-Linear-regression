@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>HW2 AI 對話紀錄</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm; }
+  body { font-family: "PingFang TC","Heiti TC",sans-serif; color:#0b0b0b; line-height:1.65; font-size:10.5pt; max-width:880px; margin:0 auto; }
+  h1 { font-size:19pt; margin-bottom:2px; }
+  .sub { color:#52514e; margin-bottom:16px; }
+  .msg { border-radius:8px; padding:9px 13px; margin:10px 0; page-break-inside:avoid; }
+  .user { background:#eaf2fc; border-left:4px solid #2a78d6; }
+  .ai { background:#f6f5f1; border-left:4px solid #8a8984; }
+  .who { font-weight:700; font-size:9.5pt; color:#52514e; margin-bottom:3px; }
+  code { background:#fff; padding:0 3px; border-radius:3px; font-size:9.5pt; }
+  ul { margin:4px 0; padding-left:20px; }
+  table { border-collapse:collapse; font-size:9pt; margin:6px 0; }
+  td,th { border:1px solid #e2e1dc; padding:3px 6px; }
+</style>
+</head>
+<body>
+<h1>GPT 輔助內容：AI 對話紀錄</h1>
+<div class="sub">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07<br>
+說明：本作業的 AI 協助是用 Claude Code 完成的（不是 ChatGPT），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。</div>
+
+<div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW1 在我的 GitHub（幫我在側邊欄打開）</div>
+<div class="msg ai"><div class="who">AI</div>在側邊欄瀏覽器開了 GitHub，不過當時還找不到你的帳號，所以請你提供 repo 連結或使用者名稱。也先整理了 HW2 的要求：Kaggle 資料集要有 10–20 個特徵、CRISP-DM 六個步驟、特徵選擇、模型評估、含預測區間的預測圖。</div>
+
+<div class="msg user"><div class="who">學生</div>這台電腦都設定好了</div>
+<div class="msg ai"><div class="who">AI</div>在 <code>~/.local/bin/gh</code> 找到 GitHub CLI，帳號是 A0966411725-png，在側邊欄打開了 HW1 repo「HW1-CWA-Weather」（台灣六大區域天氣預報：CWA API + SQLite + Streamlit）。<br>
+因為 HW1 不是回歸題目，提出兩個方向：(1) 天氣資料集，主題比較連貫；(2) 經典資料集，例如房價。</div>
+
+<div class="msg user"><div class="who">學生</div>主題選房價預測，HW2 放在現在資料夾（告訴我現在資料夾位置），之後要在 GitHub 建立一個新的</div>
+<div class="msg ai"><div class="who">AI</div>建議用 Kaggle「House Sales in King County, USA」（21,613 筆、18 個特徵，目標 price）。因為沒有 Kaggle 金鑰，詢問下載方式和學號。</div>
+<div class="msg user"><div class="who">學生</div>從 GitHub 鏡像下載；學號 7115064191。（之後補充：下載資料放在目前資料夾）</div>
+
+<div class="msg ai"><div class="who">AI</div>下載 <code>kc_house_data.csv</code>，寫好並執行主程式 <code>7115064191_hw2.py</code>：
+<ul>
+<li><b>資料理解</b>：沒有缺失值、有 177 筆重複成交；價格右偏（偏態 4.02），取 log 後變成 0.43；sqft_basement = sqft_living − sqft_above，完全共線。</li>
+<li><b>資料準備</b>：清理後剩 21,419 筆；建立 log_price、house_age、is_renovated、has_basement，面積取 log；zipcode 改為 one-hot；訓練/測試切 80/20。</li>
+<li><b>特徵選擇</b>：用了相關係數、VIF、Backward Elimination、RFECV、LassoCV。</li>
+</ul>
+第一次執行時發現 VIF 修剪的邏輯把最重要的 log_sqft_living 刪掉了，AI 自己找出問題並修正為「每次取 VIF 最高的特徵和它最相關的夥伴，刪掉其中和目標相關性較弱的那個」。最後選出 12 個特徵。</div>
+
+<div class="msg ai"><div class="who">AI</div>模型結果（測試集）：
+<table>
+<tr><th>模型</th><th>R²(log)</th><th>MAPE</th></tr>
+<tr><td>M1 單純線性回歸</td><td>0.453</td><td>33.1%</td></tr>
+<tr><td>M2 MLR 全部 17 個特徵</td><td>0.775</td><td>19.8%</td></tr>
+<tr><td>M3 MLR 選出的 12 個特徵</td><td>0.761</td><td>20.3%</td></tr>
+<tr><td>M4 M3 + zipcode</td><td>0.878</td><td>13.7%</td></tr>
+<tr><td>HistGradientBoosting（對照）</td><td>0.905</td><td>11.6%</td></tr>
+</table>
+95% 預測區間在測試集的實際覆蓋率是 94.4%（M3）/ 94.0%（M4）。總共產出 11 張圖（含 CI/PI 預測圖）、<code>predict.py</code> 部署程式，以及 PDF 報告。另外發現模型檔有 34 MB（statsmodels 會存訓練資料），用 <code>remove_data()</code> 縮到 60 KB。</div>
+
+<div class="msg user"><div class="who">學生</div>然後這個任務設定可在其他電腦也能對話；不行的話就自動重開一個任務，然後告訴我你現在資料夾在哪。</div>
+<div class="msg ai"><div class="who">AI</div>開啟了 Remote Control，可以從 claude.ai/code 或手機 App 繼續這個對話。</div>
+
+<div class="msg user"><div class="who">學生</div>（截圖）檔案夾用 HW2 那一個資料夾</div>
+<div class="msg ai"><div class="who">AI</div>把所有檔案搬到 <code>~/本地/ HW2- Multiple Linear regression </code>。因為資料夾名稱頭尾有空格，對話的工作目錄沒辦法切換過去，所以改用完整路徑處理。也補上 README.md、requirements.txt，並壓縮成 <code>7115064191_hw2.zip</code>。</div>
+
+<div class="msg user"><div class="who">學生</div>把和你的對話匯出成 PDF；在 NotebookLM 研究網路上同主題的解法，寫一份 100 字以上的摘要貼進報告。做給我。</div>
+<div class="msg ai"><div class="who">AI</div>在 NotebookLM（Gemini Notebook）建立筆記本，加入 7 個網路來源（Kaggle 資料集頁、多個 GitHub / nbviewer 上的 King County 房價 Notebook、AI Planet 上的 Notebook、ITM Conferences 2025 的論文），請它整理主流解法並寫摘要，再把摘要貼進報告第 9 節，同時產出這份對話紀錄 PDF。</div>
+
+</body>
+</html>
