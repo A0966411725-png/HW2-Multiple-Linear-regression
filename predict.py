@@ -1,12 +1,13 @@
 """
 Deployment demo: load the saved MLR model and predict a house price with a 95% interval.
-Run 7115064191_hw2.py first to create model/house_price_mlr.pkl.
+Run 7115064191_hw2.py first to create model/house_price_mlr.pkl.gz (gzip-compressed pickle).
 
 Usage:
     python3 predict.py
     python3 predict.py --sqft_living 2500 --grade 9 --zipcode 98004 --lat 47.62
 """
 import argparse
+import gzip
 import os
 import pickle
 
@@ -46,7 +47,7 @@ if __name__ == "__main__":
         p.add_argument(f"--{k}", type=type(v), default=v)
     args = vars(p.parse_args())
 
-    with open(os.path.join(BASE, "model", "house_price_mlr.pkl"), "rb") as f:
+    with gzip.open(os.path.join(BASE, "model", "house_price_mlr.pkl.gz"), "rb") as f:
         bundle = pickle.load(f)
     out = predict_price(args, bundle)
     print("Input:", args)

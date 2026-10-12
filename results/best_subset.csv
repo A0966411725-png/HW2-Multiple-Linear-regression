@@ -1,0 +1,18 @@
+k,features,BIC,AdjR2
+1,grade,-33872.3616,0.493
+2,"log_sqft_living, lat",-39483.0852,0.6347
+3,"log_sqft_living, grade, lat",-42671.9334,0.6969
+4,"log_sqft_living, grade, house_age, lat",-44900.0748,0.734
+5,"log_sqft_living, view, grade, house_age, lat",-45905.7727,0.7493
+6,"bathrooms, log_sqft_living, view, grade, house_age, lat",-46212.1317,0.7539
+7,"bathrooms, log_sqft_living, view, grade, house_age, lat, log_sqft_living15",-46534.8277,0.7586
+8,"bathrooms, log_sqft_living, waterfront, view, grade, house_age, lat, log_sqft_living15",-46794.6916,0.7623
+9,"bathrooms, log_sqft_living, waterfront, view, condition, grade, house_age, lat, log_sqft_living15",-47023.8303,0.7656
+10,"bathrooms, log_sqft_living, floors, waterfront, view, condition, grade, house_age, lat, log_sqft_living15",-47222.2169,0.7684
+11,"bedrooms, bathrooms, log_sqft_living, floors, waterfront, view, condition, grade, house_age, lat, log_sqft_living15",-47280.2829,0.7693
+12,"bedrooms, bathrooms, log_sqft_living, floors, waterfront, view, condition, grade, house_age, lat, log_sqft_living15, log_sqft_lot15",-47336.6564,0.7702
+13,"bedrooms, bathrooms, log_sqft_living, floors, waterfront, view, condition, grade, house_age, is_renovated, lat, log_sqft_living15, log_sqft_lot15",-47372.9119,0.7708
+14,"bedrooms, bathrooms, log_sqft_living, floors, waterfront, view, condition, grade, log_sqft_above, has_basement, house_age, lat, log_sqft_living15, log_sqft_lot15",-47408.5173,0.7714
+15,"bedrooms, bathrooms, log_sqft_living, floors, waterfront, view, condition, grade, log_sqft_above, has_basement, house_age, is_renovated, lat, log_sqft_living15, log_sqft_lot15",-47447.4761,0.772
+16,"bedrooms, bathrooms, log_sqft_living, log_sqft_lot, floors, waterfront, view, condition, grade, log_sqft_above, has_basement, house_age, is_renovated, lat, log_sqft_living15, log_sqft_lot15",-47448.8319,0.7722
+17,"bedrooms, bathrooms, log_sqft_living, log_sqft_lot, floors, waterfront, view, condition, grade, log_sqft_above, has_basement, house_age, is_renovated, lat, long, log_sqft_living15, log_sqft_lot15",-47439.1428,0.7722

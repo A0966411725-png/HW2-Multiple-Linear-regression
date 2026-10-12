@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<title>HW2 AI 對話紀錄</title>
+<title>HW2 AI 輔助內容（Claude Code）</title>
 <style>
   @page { size: A4; margin: 16mm 15mm; }
   body { font-family: "PingFang TC","Heiti TC","Microsoft JhengHei",sans-serif; color:#0b0b0b; line-height:1.65; font-size:10.5pt; max-width:880px; margin:0 auto; }
@@ -20,9 +20,9 @@
 </style>
 </head>
 <body>
-<h1>GPT 輔助內容：AI 對話紀錄</h1>
-<div class="sub">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07<br>
-說明：本作業的 AI 協助是用 Claude Code 完成的（不是 ChatGPT），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。作業分兩段完成：第一段建立完整分析，第二段依評分標準補強。只收錄和作業內容有關的對話。</div>
+<h1>AI 輔助內容：Claude Code 對話紀錄</h1>
+<div class="sub">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07、2026-10-12<br>
+說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。作業分三段完成：第一段建立完整分析，第二段依評分標準補強，第三段對照課程講義補強。只收錄和作業內容有關的對話。</div>
 
 <h2>第一段：建立完整分析</h2>
 <div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW2 要延伸自我的 HW1。</div>
@@ -63,6 +63,25 @@
 <li><b>結果說服力</b>：新增預測區間校準圖（50%–99% 六種水準，90–95% 幾乎與理想線重合），以及殘差地圖：M3 在市區有明顯的低估群聚，加入 zipcode 後群聚消失，殘差標準差從 0.258 降到 0.185。</li>
 <li><b>Auto Regression</b>：用每週中位房價做 AR(3)，預測最後 8 週的 MAPE 是 4.6%，比 naive 預測（4.3%）還差。報告如實說明：橫斷面資料不適合用 AR，所以 AR 只當補充。</li>
 <li><b>報告</b>：加上 CRISP-DM 流程圖、欄位字典、利害關係人表、成功標準檢核表（M4 全部達成，M3 的 MAPE 20.3% 差一點沒達到）、網路解法 R² 對照表（此資料集在 Kaggle 是 Dataset，沒有排行榜）、結論與限制。</li>
+</ul></div>
+
+
+<h2>第三段：對照課程講義補強</h2>
+<div class="msg user"><div class="who">學生</div>（打開課程 Notion 頁面）查看有關這次作業的相關東西，看看有沒有需要修正；「GPT 輔助內容」改成「AI 輔助內容」，填 Claude Code。</div>
+<div class="msg ai"><div class="who">AI</div>讀了課程 L4-2（CRISP-DM、資料型態）、L5（Simple LR 到 Auto Regression）、L6（Multiple Linear Regression、50 Startup）以及老師的「50 STARTUP Kaggle Report」範例報告，對照後找出要補的地方：
+<ul>
+<li>範例報告把每一種特徵選擇方法<b>分開</b>訓練，用測試集的 MSE 與 R² 比較；L6 Part 2 要列出選 1 到 N 個特徵的 RMSE／R² 表。</li>
+<li>L6 Step 4 要用 training／test 曲線判斷 overfit／underfit，並用 <b>Optuna</b> 優化模型；Step 5 部署要用 <b>gzip + pickle</b>。</li>
+<li>L6 Part 4 列出多元回歸的五大假設（線性、變異數同質、常態、誤差獨立、無共線性）；Part 5 介紹 Score selection（暴力搜尋所有特徵組合）與 dummy variable trap。</li>
+<li>L5 列出多項式回歸、Elastic Net 等線性回歸形式；L4-2 要區分名目／順序／區間／比例四種資料型態。</li>
+</ul></div>
+<div class="msg ai"><div class="who">AI</div>依講義補強（原本的 M1–M4 數字不變）：
+<ul>
+<li><b>特徵選擇比較</b>：新增暴力搜尋（2<sup>17</sup> − 1 = 131,071 組，用 Gram 矩陣約 3 秒算完）。Backward、Forward、RFECV、Lasso、暴力搜尋五種方法全部收斂到同一組 16 個特徵（只刪 long），測試 R² 0.775，但最大 VIF 19.6；M3 加上 VIF ≤ 5 後只用 12 個特徵，R² 0.761、VIF 4.4。另外發現 long 的 Lasso 係數其實是 −0.0002（接近 0，不是剛好 0），報告的說法跟著修正。</li>
+<li><b>Overfit／Underfit</b>：1–4 個特徵時 underfit；每一步的 training 與 test R² 差距都小於 0.004，沒有 overfit。學習曲線顯示 M5 在小樣本時有輕微 overfit，資料變多後消失。</li>
+<li><b>Optuna</b>：對 Elastic Net 的 alpha 與 l1_ratio 搜尋 40 次，最佳結果 CV R² 0.8789，和 OLS 完全相同，確認不需要正則化。第一次執行時一次訓練要 18 秒以上，改用預先計算 Gram 矩陣後降到 0.04 秒。</li>
+<li><b>多項式回歸 M5</b>：12 個特徵的二次項與交互作用（87 項）加 zipcode，測試 R² 0.887，美元 RMSE $134,921，比 HistGradientBoosting 還低。</li>
+<li><b>報告</b>：加入 MSE 與各指標的定義、五大假設檢查表（補上線性假設）、資料型態欄位、dummy variable trap 說明、gzip 部署（57 KB → 39 KB）、CRISP-DM 總結表；「GPT 輔助內容」改為「AI 輔助內容（Claude Code）」。</li>
 </ul></div>
 
 </body>

@@ -96,6 +96,19 @@ Forward stepwise (AIC) order: grade -> lat -> log_sqft_living -> house_age -> vi
 BIC minimum at 16 features; Adj R² at 12 features = 0.7702 vs all 17 = 0.7722
   [fig] figures/12_forward_stepwise.png
 
+Best-subset search: 131,071 OLS fits; BIC-optimal size = 16
+
+Feature-selection methods on the test set:
+                               n_features  test_MSE_log  test_RMSE_$  test_R2  max_VIF
+All-in (no selection)                17.0        0.0630  187261.5574   0.7748  19.6216
+Backward elimination (p<0.05)        16.0        0.0630  187284.0739   0.7748  19.6215
+Forward selection (BIC, 16)          16.0        0.0630  187284.0739   0.7748  19.6215
+RFECV                                16.0        0.0630  187284.0739   0.7748  19.6215
+LassoCV (|coef|>0.01)                16.0        0.0630  187284.0739   0.7748  19.6215
+Best subset (BIC, 16)                16.0        0.0630  187284.0739   0.7748  19.6215
+Consensus + VIF<=5 (= M3)            12.0        0.0668  195198.6595   0.7611   4.4362
+  [fig] figures/16_selection_methods.png
+
 ======================================================================
 4. MODELING - MODELS
 ======================================================================
@@ -113,17 +126,27 @@ M3 assumption checks:
   features significant with HC3 robust SE (p<0.05) 11/12
   not significant with HC3                         log_sqft_lot (p=0.078)
 
+Optuna ElasticNet: best alpha = 1.10e-05, l1_ratio = 0.00, CV R² = 0.8789 (OLS M4 CV R² = 0.8789)
+  [fig] figures/18_optuna_elasticnet.png
+M5 polynomial design: 156 columns (87 polynomial terms + 69 zipcode dummies)
+  learning curve M3 MLR selected (12 feat.): n=2741 train/val RMSE 0.260/0.256 -> n=13708 0.255/0.255
+  learning curve M4 MLR selected + zipcode one-hot: n=2741 train/val RMSE 0.178/0.184 -> n=13708 0.181/0.182
+  learning curve M5 Polynomial deg-2 + zipcode: n=2741 train/val RMSE 0.164/0.184 -> n=13708 0.171/0.174
+  [fig] figures/17_train_test_curves.png
+
 ======================================================================
 5. EVALUATION
 ======================================================================
-                                   R2_log  AdjR2_log  CV_R2_log (5-fold mean)  CV_R2_log (std)    R2_$       RMSE_$        MAE_$   MAPE_%
-M1 Simple LR (log_sqft_living)     0.4530     0.4528                   0.4550           0.0079  0.4199  296180.7338  173926.2715  33.1346
-M2 MLR all (17 feat.)              0.7748     0.7739                   0.7715           0.0059  0.7681  187261.5574  110552.5837  19.7509
-M3 MLR selected (12 feat.)         0.7611     0.7604                   0.7609           0.0055  0.7481  195198.6595  113288.4819  20.3019
-M4 MLR selected + zipcode one-hot  0.8781     0.8757                   0.8789           0.0027  0.8657  142490.7931   76677.6776  13.7389
-Ridge (M4 design)                  0.8781        NaN                   0.8789           0.0027  0.8657  142496.3165   76681.3693  13.7394
-Random Forest (benchmark)          0.8924        NaN                   0.8889           0.0037  0.8613  144842.2972   70493.2392  12.2821
-HistGradientBoosting (benchmark)   0.9053        NaN                   0.9032           0.0019  0.8755  137215.3206   64867.8646  11.6240
+                                   R2_log  AdjR2_log  CV_R2_log (5-fold mean)  CV_R2_log (std)  MSE_log    R2_$       RMSE_$        MAE_$   MAPE_%
+M1 Simple LR (log_sqft_living)     0.4530     0.4528                   0.4550           0.0079   0.1530  0.4199  296180.7338  173926.2715  33.1346
+M2 MLR all (17 feat.)              0.7748     0.7739                   0.7715           0.0059   0.0630  0.7681  187261.5574  110552.5837  19.7509
+M3 MLR selected (12 feat.)         0.7611     0.7604                   0.7609           0.0055   0.0668  0.7481  195198.6595  113288.4819  20.3019
+M4 MLR selected + zipcode one-hot  0.8781     0.8757                   0.8789           0.0027   0.0341  0.8657  142490.7931   76677.6776  13.7389
+Ridge (M4 design)                  0.8781        NaN                   0.8789           0.0027   0.0341  0.8657  142496.3165   76681.3693  13.7394
+ElasticNet (Optuna, M4 design)     0.8781        NaN                   0.8789           0.0027   0.0341  0.8657  142492.9758   76679.1449  13.7391
+M5 Polynomial deg-2 + zipcode      0.8868     0.8825                   0.8891           0.0028   0.0317  0.8796  134920.9068   73295.3494  13.0872
+Random Forest (benchmark)          0.8924        NaN                   0.8889           0.0037   0.0301  0.8613  144842.2972   70493.2392  12.2821
+HistGradientBoosting (benchmark)   0.9053        NaN                   0.9032           0.0019   0.0265  0.8755  137215.3206   64867.8646  11.6240
 M3 MLR selected (12 feat.): 95% PI coverage on test = 94.40%, median width = $473,977
 M4 MLR selected + zipcode one-hot: 95% PI coverage on test = 94.02%, median width = $330,002
 
@@ -151,7 +174,7 @@ M4 MLR selected + zipcode one-hot  57.4  73.5  83.4  90.5  94.0  97.6
 ======================================================================
 6. DEPLOYMENT
 ======================================================================
-  saved model/house_price_mlr.pkl  (M4: selected features + zipcode)
+  saved model/house_price_mlr.pkl.gz  (M4: selected features + zipcode; pickle 57 KB -> gzip 39 KB)
   demo house id=7283900521: actual $352,500, predicted $365,494 (95% PI $256,155 - $521,502)
 
 Done.

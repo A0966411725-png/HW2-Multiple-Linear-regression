@@ -4,8 +4,10 @@ Student ID : 7115064191
 Dataset    : House Sales in King County, USA (Kaggle)
              https://www.kaggle.com/datasets/harlfoxem/housesalesprediction
 Run        : python 7115064191_hw2.py   (Mac: python3; ~1 min)
-Outputs    : figures/*.png, results/*.csv|json, model/house_price_mlr.pkl
+Outputs    : figures/*.png, results/*.csv|json, model/house_price_mlr.pkl.gz
 """
+import gzip
+import itertools
 import json
 import os
 import pickle
@@ -16,22 +18,24 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+import optuna
 import pandas as pd
 import statsmodels.api as sm
 from scipy import stats
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.feature_selection import RFECV
-from sklearn.linear_model import LassoCV, LinearRegression, RidgeCV
+from sklearn.linear_model import ElasticNet, LassoCV, LinearRegression, RidgeCV
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import KFold, cross_val_score, train_test_split
+from sklearn.model_selection import KFold, cross_val_score, learning_curve, train_test_split
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.stats.stattools import durbin_watson, jarque_bera
 from statsmodels.tsa.ar_model import AutoReg, ar_select_order
 
 warnings.filterwarnings("ignore")
+optuna.logging.set_verbosity(optuna.logging.WARNING)
 SEED = 42
 BASE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(BASE, "kc_house_data.csv")
@@ -54,6 +58,7 @@ class Tee:
         except UnicodeEncodeError:  # e.g. Windows cp950 console cannot print "²"
             self.console.write(s.encode(self.console.encoding or "ascii", "replace").decode(self.console.encoding or "ascii"))
         self.file.write(s)
+        self.file.flush()
 
     def flush(self):
         self.console.flush()
@@ -89,6 +94,7 @@ def dollar_metrics(y_true_log, y_pred_log, k=None):
     r2_log = r2_score(y_true_log, y_pred_log)
     out = {
         "R2_log": r2_log,
+        "MSE_log": float(mean_squared_error(y_true_log, y_pred_log)),
         "R2_$": r2_score(yt, yp),
         "RMSE_$": float(np.sqrt(mean_squared_error(yt, yp))),
         "MAE_$": mean_absolute_error(yt, yp),
@@ -328,6 +334,84 @@ ax[1].set(title="Forward stepwise: Adjusted R² as features enter", ylabel="Adju
 fig.tight_layout()
 save(fig, "12_forward_stepwise.png")
 
+
+def lr_scores(cols):
+    """Fit sklearn LinearRegression on the given columns; return train/test scores (log target)."""
+    lr = LinearRegression().fit(Xtr[cols], ytr)
+    p_tr, p_te = lr.predict(Xtr[cols]), lr.predict(Xte[cols])
+    return {"train_R2": r2_score(ytr, p_tr), "test_R2": r2_score(yte, p_te),
+            "test_MSE_log": mean_squared_error(yte, p_te),
+            "test_RMSE_$": float(np.sqrt(mean_squared_error(np.exp(yte), np.exp(p_te))))}
+
+
+# forward path on the test set: "number of features 1..17 -> RMSE / R²" (lecture L6, Part 2)
+fwd_scores = pd.DataFrame([lr_scores(list(fwd["added"][:k])) for k in fwd["step"]])
+fwd = pd.concat([fwd, fwd_scores], axis=1)
+fwd.round(4).to_csv(os.path.join(RES, "forward_stepwise.csv"), index=False)
+
+# 4.7 Score selection: exhaustive best-subset search over all 2^17 - 1 feature sets (BIC).
+#     Solved with the Gram matrix so 131,071 OLS fits take a few seconds.
+Xc = (Xtr - Xtr.mean()).values
+yc = (ytr - ytr.mean()).values
+G, g, yy, n_tr = Xc.T @ Xc, Xc.T @ yc, float(yc @ yc), len(yc)
+best_by_k, n_fits = {}, 0
+for k in range(1, len(CANDIDATES) + 1):
+    best = (np.inf, None)
+    for S in itertools.combinations(range(len(CANDIDATES)), k):
+        S = list(S)
+        b = np.linalg.solve(G[np.ix_(S, S)], g[S])
+        rss = yy - float(b @ g[S])
+        n_fits += 1
+        if rss < best[0]:
+            best = (rss, S)
+    rss, S = best
+    best_by_k[k] = {"k": k, "features": [CANDIDATES[i] for i in S],
+                    "BIC": n_tr * np.log(rss / n_tr) + (k + 1) * np.log(n_tr),
+                    "AdjR2": 1 - (rss / (n_tr - k - 1)) / (yy / (n_tr - 1))}
+bs = pd.DataFrame(best_by_k.values())
+bs_best = bs.loc[bs["BIC"].idxmin()]
+bs.assign(features=bs["features"].str.join(", ")).round(4).to_csv(os.path.join(RES, "best_subset.csv"), index=False)
+print(f"\nBest-subset search: {n_fits:,} OLS fits; BIC-optimal size = {int(bs_best['k'])}")
+
+# 4.8 Compare every selection method on the same test set (like the lecture's 50-Startup report)
+k_bic = int(fwd.loc[fwd["BIC"].idxmin(), "step"])
+methods = {
+    "All-in (no selection)": list(CANDIDATES),
+    "Backward elimination (p<0.05)": be_cols,
+    f"Forward selection (BIC, {k_bic})": list(fwd["added"][:k_bic]),
+    "RFECV": rfe_cols,
+    "LassoCV (|coef|>0.01)": [c for c in CANDIDATES if abs(lasso_coef[c]) > 0.01],  # same rule as the vote
+    f"Best subset (BIC, {int(bs_best['k'])})": list(bs_best["features"]),
+    "Consensus + VIF<=5 (= M3)": list(selected),
+}
+sel_cmp = pd.DataFrame({m: {"n_features": len(c), **lr_scores(c), "max_VIF": float(vif_table(Xtr[c]).max()),
+                            "dropped": ", ".join(x for x in CANDIDATES if x not in c) or "-"}
+                        for m, c in methods.items()}).T
+sel_cmp.to_csv(os.path.join(RES, "selection_methods.csv"))
+print("\nFeature-selection methods on the test set:\n" +
+      sel_cmp[["n_features", "test_MSE_log", "test_RMSE_$", "test_R2", "max_VIF"]].astype(float).round(4).to_string())
+
+SHORT = {"All-in": "All-in", "Backward": "Backward\nelimination", "Forward": "Forward\nselection (BIC)",
+         "RFECV": "RFECV", "LassoCV": "LassoCV\n|coef|>0.01", "Best subset": "Best subset\n(BIC, 2^17 search)",
+         "Consensus": "Consensus\n+ VIF<=5 (M3)"}
+short_lbl = [next(v for k_, v in SHORT.items() if m.startswith(k_)) for m in sel_cmp.index]
+fig, ax1 = plt.subplots(figsize=(12, 4.8))
+xs_ = np.arange(len(sel_cmp))
+bar_cols = [BLUE if "M3" in m else GRAY for m in sel_cmp.index]
+ax1.bar(xs_, sel_cmp["test_RMSE_$"].astype(float) / 1e3, color=bar_cols, width=0.6)
+for i, (r_, v_) in enumerate(zip(sel_cmp["test_RMSE_$"].astype(float), sel_cmp["max_VIF"].astype(float))):
+    ax1.text(i, r_ / 1e3 + 2, f"{r_/1e3:.1f}K\nmax VIF {v_:.1f}", ha="center", fontsize=8, color=INK2)
+ax1.set_xticks(xs_, [f"{m}\n{int(n)} features" for m, n in zip(short_lbl, sel_cmp["n_features"])], fontsize=8.5)
+ax1.set(ylabel="test RMSE (thousand USD)", ylim=(0, sel_cmp["test_RMSE_$"].astype(float).max() / 1e3 * 1.25),
+        title="Feature-selection methods compared on the same test set (bars = RMSE, line = R²)")
+ax2 = ax1.twinx()
+ax2.plot(xs_, sel_cmp["test_R2"].astype(float), color=ORANGE, marker="o", lw=2)
+ax2.set_ylim(0.70, 0.80)
+ax2.set_ylabel("test R² (log price)", color=ORANGE)
+ax2.grid(False)
+ax2.spines["right"].set_visible(True)
+save(fig, "16_selection_methods.png")
+
 # ---------------------------------------------------------------------
 print("\n" + "=" * 70)
 print("4. MODELING - MODELS")
@@ -399,6 +483,95 @@ ridge = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-3, 3, 30))).
 results["Ridge (M4 design)"] = dollar_metrics(yte, ridge.predict(Xte4))
 cv_rows["Ridge (M4 design)"] = cv_r2(make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-3, 3, 30))), Xtr4, ytr)
 
+# Optuna: tune Elastic Net (alpha, l1_ratio) on the M4 design by 5-fold CV R²
+def enet(alpha, l1):
+    return make_pipeline(StandardScaler(), ElasticNet(alpha=alpha, l1_ratio=l1, max_iter=10000,
+                                                    precompute=True, random_state=SEED))  # Gram matrix: ~500x faster
+
+
+def objective(trial):
+    a = trial.suggest_float("alpha", 1e-5, 1e-1, log=True)
+    l1 = trial.suggest_float("l1_ratio", 0.0, 1.0)
+    return cv_r2(enet(a, l1), Xtr4, ytr).mean()
+
+
+study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=SEED))
+study.optimize(objective, n_trials=40)
+bp_ = study.best_params
+ENET_NAME = "ElasticNet (Optuna, M4 design)"
+enet_best = enet(bp_["alpha"], bp_["l1_ratio"]).fit(Xtr4, ytr)
+results[ENET_NAME] = dollar_metrics(yte, enet_best.predict(Xte4))
+cv_rows[ENET_NAME] = cv_r2(enet(bp_["alpha"], bp_["l1_ratio"]), Xtr4, ytr)
+trials = study.trials_dataframe()[["number", "value", "params_alpha", "params_l1_ratio"]]
+trials.round(6).to_csv(os.path.join(RES, "optuna_trials.csv"), index=False)
+print(f"\nOptuna ElasticNet: best alpha = {bp_['alpha']:.2e}, l1_ratio = {bp_['l1_ratio']:.2f}, "
+      f"CV R² = {study.best_value:.4f} (OLS M4 CV R² = {cv_rows[M4_NAME].mean():.4f})")
+
+fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+ax[0].scatter(trials["number"], trials["value"], s=22, color=GRAY, label="trial")
+ax[0].plot(trials["number"], trials["value"].cummax(), color=BLUE, lw=2, label="best so far")
+ax[0].axhline(cv_rows[M4_NAME].mean(), color=ORANGE, ls="--", lw=1.2, label="OLS (M4) CV R²")
+ax[0].set(title="Optuna optimization history (40 trials)", xlabel="trial", ylabel="5-fold CV R² (log price)",
+          ylim=(trials["value"].quantile(0.1) - 0.01, cv_rows[M4_NAME].mean() + 0.005))
+ax[0].legend(fontsize=8.5, loc="lower right")
+sc_o = ax[1].scatter(trials["params_alpha"], trials["value"], c=trials["params_l1_ratio"], cmap="viridis", s=30)
+ax[1].set_xscale("log")
+ax[1].set(title="alpha vs CV R² (color = l1_ratio)", xlabel="alpha (regularization strength)", ylabel="5-fold CV R²",
+          ylim=ax[0].get_ylim())
+fig.colorbar(sc_o, ax=ax[1], label="l1_ratio (0 = Ridge, 1 = Lasso)")
+fig.tight_layout()
+save(fig, "18_optuna_elasticnet.png")
+
+# M5 polynomial regression: degree-2 terms (squares + interactions) of the 12 selected features
+#     + zipcode one-hot. Still linear in the parameters, so it is a linear regression model.
+centers = Xtr[selected].mean()
+poly = PolynomialFeatures(degree=2, include_bias=False).fit(Xtr[selected] - centers)
+poly_names = poly.get_feature_names_out(selected)
+binary = [c for c in selected if set(Xtr[c].unique()) <= {0, 1}]
+keep_poly = [i for i, nm in enumerate(poly_names) if nm not in {f"{b}^2" for b in binary}]  # x^2 == x for 0/1
+
+
+def poly_design(frame):
+    P = pd.DataFrame(poly.transform(frame[selected] - centers)[:, keep_poly],
+                     columns=poly_names[keep_poly], index=frame.index)
+    z = with_zip(frame).drop(columns=selected)
+    return pd.concat([P, z], axis=1)
+
+
+Xtr5, Xte5 = poly_design(train), poly_design(test)
+M5_NAME = "M5 Polynomial deg-2 + zipcode"
+m5 = LinearRegression().fit(Xtr5, ytr)
+results[M5_NAME] = dollar_metrics(yte, m5.predict(Xte5), k=Xtr5.shape[1])
+cv_rows[M5_NAME] = cv_r2(LinearRegression(), Xtr5, ytr)
+print(f"M5 polynomial design: {Xtr5.shape[1]} columns "
+      f"({len(keep_poly)} polynomial terms + {Xtr5.shape[1] - len(keep_poly)} zipcode dummies)")
+
+# Overfit / underfit check (lecture L6 Step 4): training vs test curves
+lc_rows = {}
+for nm, est, Xd in [(M3_NAME, LinearRegression(), Xtr[selected]), (M4_NAME, LinearRegression(), Xtr4),
+                    (M5_NAME, LinearRegression(), Xtr5)]:
+    sizes, tr_sc, va_sc = learning_curve(est, Xd, ytr, cv=kf, scoring="neg_root_mean_squared_error",
+                                         train_sizes=np.linspace(0.2, 1.0, 9))
+    lc_rows[nm] = (sizes, -tr_sc.mean(axis=1), -va_sc.mean(axis=1))
+    print(f"  learning curve {nm}: n={sizes[0]} train/val RMSE {-tr_sc.mean(axis=1)[0]:.3f}/{-va_sc.mean(axis=1)[0]:.3f}"
+          f" -> n={sizes[-1]} {-tr_sc.mean(axis=1)[-1]:.3f}/{-va_sc.mean(axis=1)[-1]:.3f}")
+
+fig, ax = plt.subplots(1, 2, figsize=(13, 4.4))
+ax[0].plot(fwd["step"], fwd["train_R2"], color=BLUE, lw=2, marker="o", ms=4, label="training R²")
+ax[0].plot(fwd["step"], fwd["test_R2"], color=ORANGE, lw=2, marker="s", ms=4, label="test R²")
+ax[0].axvline(len(selected), color=GRAY, ls="--", lw=1)
+ax[0].set(title="Training vs test R² as features are added (forward order)", xlabel="# features",
+          ylabel="R² (log price)")
+ax[0].legend(loc="lower right")
+for (nm, (sz, tr_, va_)), col in zip(lc_rows.items(), [GRAY, BLUE, AQUA]):
+    ax[1].plot(sz, tr_, color=col, lw=1.6, ls="--")
+    ax[1].plot(sz, va_, color=col, lw=2.2, marker="o", ms=4, label=nm.split(" (")[0].split(" + ")[0] + (" + zip" if "zip" in nm else ""))
+ax[1].set(title="Learning curves (dashed = training, solid = 5-fold validation)", xlabel="# training houses",
+          ylabel="RMSE (log price)", ylim=(0.12, 0.32))
+ax[1].legend(fontsize=8.5)
+fig.tight_layout()
+save(fig, "17_train_test_curves.png")
+
 # Mainstream non-linear benchmarks seen on Kaggle (tree ensembles)
 XtrT = train[CANDIDATES + ["zipcode"]]
 XteT = test[CANDIDATES + ["zipcode"]]
@@ -420,7 +593,7 @@ print("=" * 70)
 res = pd.DataFrame(results).T
 res["CV_R2_log (5-fold mean)"] = pd.Series({k: v.mean() for k, v in cv_rows.items()})
 res["CV_R2_log (std)"] = pd.Series({k: v.std() for k, v in cv_rows.items()})
-res = res[["R2_log", "AdjR2_log", "CV_R2_log (5-fold mean)", "CV_R2_log (std)", "R2_$", "RMSE_$", "MAE_$", "MAPE_%"]]
+res = res[["R2_log", "AdjR2_log", "CV_R2_log (5-fold mean)", "CV_R2_log (std)", "MSE_log", "R2_$", "RMSE_$", "MAE_$", "MAPE_%"]]
 res.to_csv(os.path.join(RES, "model_comparison.csv"))
 pd.set_option("display.width", 200)
 print(res.round(4).to_string())
@@ -458,6 +631,10 @@ print("\nPI calibration (nominal -> empirical coverage %):\n" + calib_df.round(1
 with open(os.path.join(RES, "metrics.json"), "w", encoding="utf-8") as f:
     json.dump({"selected_features": selected,
                "forward_stepwise_order": list(fwd["added"]),
+               "best_subset_bic": {"k": int(bs_best["k"]), "features": list(bs_best["features"]),
+                                   "n_subsets_searched": n_fits},
+               "selection_methods_test": sel_cmp.drop(columns="dropped").astype(float).round(6).to_dict(orient="index"),
+               "optuna_elasticnet": {"best_params": bp_, "best_cv_r2": float(study.best_value), "n_trials": 40},
                "m3_diagnostics": diagnostics,
                "pi_calibration_%": calib,
                "rfecv_n_features": int(rfecv.n_features_),
@@ -657,9 +834,15 @@ print("=" * 70)
 m4.remove_data()  # drop stored training arrays (34 MB -> small); predictions/intervals still work
 bundle = {"model": m4, "features": selected, "zip_levels": zip_levels,
           "note": "statsmodels OLS on log(price); use predict_price() in predict.py"}
-with open(os.path.join(MOD, "house_price_mlr.pkl"), "wb") as f:
+MODEL_PATH = os.path.join(MOD, "house_price_mlr.pkl.gz")
+with gzip.open(MODEL_PATH, "wb") as f:  # pickle + gzip compression (lecture L6 Step 5)
     pickle.dump(bundle, f)
-print("  saved model/house_price_mlr.pkl  (M4: selected features + zipcode)")
+raw_kb = len(pickle.dumps(bundle)) / 1024
+print(f"  saved model/house_price_mlr.pkl.gz  (M4: selected features + zipcode; "
+      f"pickle {raw_kb:.0f} KB -> gzip {os.path.getsize(MODEL_PATH) / 1024:.0f} KB)")
+old_pkl = os.path.join(MOD, "house_price_mlr.pkl")
+if os.path.exists(old_pkl):  # remove the uncompressed file from earlier versions
+    os.remove(old_pkl)
 
 # demo prediction with interval for one test house
 demo = test.iloc[[0]]

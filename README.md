@@ -7,7 +7,7 @@
 ## Run
 ```bash
 pip install -r requirements.txt
-python 7115064191_hw2.py      # full CRISP-DM pipeline → figures/, results/, model/  (Mac: python3, ~1 min)
+python 7115064191_hw2.py      # full CRISP-DM pipeline → figures/, results/, model/  (Mac: python3, ~75 s)
 python predict.py --sqft_living 2000 --grade 8 --zipcode 98052 --lat 47.68
 ```
 Tested on macOS and Windows. On Windows with Smart App Control, the newest pandas / scikit-learn DLLs may be blocked; use a venv with `pandas==2.2.3 scikit-learn==1.5.2`.
@@ -18,9 +18,9 @@ Tested on macOS and Windows. On Windows with Smart App Control, the newest panda
 | Business Understanding | Estimate a fair sale price **with a 95% prediction interval**; success criteria R² ≥ 0.75, MAPE ≤ 20%, PI coverage 93–97% |
 | Data Understanding | 18 features, no missing values, price right-skewed (skew 4.02 → 0.43 after log), collinear area columns |
 | Data Preparation | Drop duplicate/invalid rows (21,613 → 21,419), `log(price)`, `house_age`, `is_renovated`, `has_basement`, log areas, zipcode one-hot; 80/20 split |
-| Modeling | Feature selection: correlation, VIF, backward elimination (p<0.05), RFECV, LassoCV (+ forward stepwise AIC/BIC as a cross-check) → **12 features**; models M1–M4 + Ridge/RF/HGB benchmarks; supplementary AR(3) on weekly median price |
-| Evaluation | R², Adj R², 5-fold CV, RMSE, MAE, MAPE; Breusch-Pagan, Jarque-Bera, Durbin-Watson, HC3 robust SE; PI calibration at 50–99%; residual map; success-criteria check |
-| Deployment | `model/house_price_mlr.pkl` + `predict.py` (price + 95% CI/PI) |
+| Modeling | Feature selection: correlation, VIF, backward elimination (p<0.05), RFECV, LassoCV, plus forward stepwise and exhaustive best-subset search (131,071 subsets) as cross-checks; every method compared on the test set → **12 features**; models M1–M5 (M5 = degree-2 polynomial), Ridge, **Optuna-tuned Elastic Net**, RF/HGB benchmarks; supplementary AR(3) on weekly median price |
+| Evaluation | MSE, RMSE, MAE, MAPE, R², Adj R², 5-fold CV; training/test curves and learning curves (overfit/underfit); the five MLR assumptions (Breusch-Pagan, Jarque-Bera, Durbin-Watson, VIF, HC3 robust SE); PI calibration at 50–99%; residual map; success-criteria check |
+| Deployment | `model/house_price_mlr.pkl.gz` (pickle + gzip) + `predict.py` (price + 95% CI/PI) |
 
 ## Results (test set, 4,284 houses)
 | Model | #feat | R² (log) | CV R² | RMSE ($) | MAPE | 95% PI coverage |
@@ -29,6 +29,8 @@ Tested on macOS and Windows. On Windows with Smart App Control, the newest panda
 | M2 MLR all | 17 | 0.775 | 0.772 | 187,262 | 19.8% | – |
 | **M3 MLR selected** | 12 | 0.761 | 0.761 | 195,199 | 20.3% | 94.4% |
 | **M4 M3 + zipcode one-hot** | 12+69 | **0.878** | 0.879 | 142,491 | 13.7% | 94.0% |
+| Elastic Net (Optuna, M4 design) | 12+69 | 0.878 | 0.879 | 142,493 | 13.7% | – |
+| M5 Polynomial deg-2 + zipcode | 87+69 | 0.887 | 0.889 | 134,921 | 13.1% | – |
 | Random Forest (benchmark) | 18 | 0.892 | 0.889 | 144,842 | 12.3% | – |
 | HistGradientBoosting (benchmark) | 18 | 0.905 | 0.903 | 137,215 | 11.6% | – |
 
@@ -39,11 +41,13 @@ Public solutions summarised with NotebookLM report R² ≈ 0.65–0.70 for multi
 ![prediction interval](figures/07_mlr_zip_prediction_interval.png)
 ![PI calibration](figures/13_pi_calibration.png)
 ![residual map](figures/14_residual_map.png)
+![feature-selection methods](figures/16_selection_methods.png)
+![training vs test curves](figures/17_train_test_curves.png)
 ![model comparison](figures/10_model_comparison.png)
 
 ## Files
 - `7115064191_hw2.py` — main program (also writes `results/run_log.txt`)
 - `predict.py` — deployment demo
-- `7115064191_hw2_report.pdf` / `report.html` — report (CRISP-DM, GPT 輔助內容, NotebookLM 摘要, 主流解法比較)
-- `7115064191_ai_conversation.pdf` / `ai_conversation.html` — AI conversation log
-- `figures/` (15 charts), `results/` (metrics, feature selection, diagnostics, PI calibration, AR), `model/` — generated outputs
+- `7115064191_hw2_report.pdf` / `report.html` — report (CRISP-DM, AI 輔助內容 (Claude Code), NotebookLM 摘要, 主流解法比較)
+- `7115064191_ai_conversation.pdf` / `ai_conversation.html` — AI 輔助內容 (Claude Code conversation log)
+- `figures/` (18 charts), `results/` (metrics, feature selection, selection-method comparison, best subset, Optuna trials, diagnostics, PI calibration, AR), `model/` — generated outputs
