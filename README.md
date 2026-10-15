@@ -7,10 +7,10 @@
 ## Run
 ```bash
 pip install -r requirements.txt
-python 7115064191_hw2.py      # full CRISP-DM pipeline → figures/, results/, model/  (Mac: python3, ~75 s)
+python 7115064191_hw2.py      # full CRISP-DM pipeline → figures/, results/, model/  (Mac: python3, 1–2 min)
 python predict.py --sqft_living 2000 --grade 8 --zipcode 98052 --lat 47.68
 ```
-Tested on macOS and Windows. On Windows with Smart App Control, the newest pandas / scikit-learn DLLs may be blocked; use a venv with `pandas==2.2.3 scikit-learn==1.5.2`.
+Run on macOS and Windows with identical results (latest version, with Optuna, verified on Windows). On Windows with Smart App Control, the newest pandas / scikit-learn DLLs may be blocked; use a venv with `pandas==2.2.3 scikit-learn==1.5.2`.
 
 ## CRISP-DM
 | Phase | What was done |

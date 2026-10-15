@@ -231,7 +231,7 @@
 <li><code>l1_ratio</code>：0（純 Ridge）– 1（純 Lasso）</li>
 </ul>
 <figure><img src="figures/18_optuna_elasticnet.png"><figcaption>圖 8　Optuna 搜尋過程：左為 40 次試驗的 CV R²（藍線＝目前最佳，橘色虛線＝OLS），右為 alpha 與 CV R² 的關係</figcaption></figure>
-<p><b>結果</b>：最佳參數為 alpha = 1.1×10<sup>−5</sup>、l1_ratio ≈ 0，CV R² 0.8789，和不加懲罰的 OLS（0.8789）完全相同；alpha 越大 R² 越低。也就是說，<b>Optuna 確認 M4 不需要正則化</b>：資料有 17,135 筆、特徵已經過 VIF 篩選，OLS 本身就沒有 overfit。（技術細節：Elastic Net 預先計算 Gram 矩陣後，每次訓練從約 18.7 秒降到 0.04 秒，整個主程式約 75 秒跑完。）</p>
+<p><b>結果</b>：最佳參數為 alpha = 1.1×10<sup>−5</sup>、l1_ratio ≈ 0，CV R² 0.8789，和不加懲罰的 OLS（0.8789）完全相同；alpha 越大 R² 越低。也就是說，<b>Optuna 確認 M4 不需要正則化</b>：資料有 17,135 筆、特徵已經過 VIF 篩選，OLS 本身就沒有 overfit。（技術細節：Elastic Net 預先計算 Gram 矩陣後，每次訓練從約 18.7 秒降到 0.04 秒，整個主程式 1–2 分鐘跑完。）</p>
 
 <h3>4.6 多項式回歸（M5）</h3>
 <p>課程 L5 列出的線性回歸形式還包含<b>多項式回歸</b>。M5 把 M3 的 12 個特徵（先減去平均值）展開成二次項：12 個一次項 + 9 個平方項 + 66 個兩兩交互項（3 個 0/1 變數的平方等於自己，已去除），共 87 項，再加 69 個 zipcode 虛擬變數。模型對「參數」仍是線性的，所以仍屬於線性回歸，用 OLS 求解。</p>
@@ -329,7 +329,7 @@ Predicted price : $553,994
 95% CI (mean)   : $544,004 - $564,168
 95% PI (house)  : $388,300 - $790,393</pre></li>
 <li>解讀：同條件房屋的<b>平均</b>價格約 $544K–$564K（CI，窄）；<b>單一一間</b>房子的成交價有 95% 機率落在 $388K–$790K（PI，寬，因為包含個別房屋的差異）。</li>
-<li>程式在 macOS（python3）與 Windows（python）都測試過可以直接執行，執行紀錄會自動寫入 <code>results/run_log.txt</code>。</li>
+<li>程式在 macOS（python3）與 Windows（python）上都執行過，結果一致（加入 Optuna 的最新版本在 Windows 上驗證）。執行紀錄會自動寫入 <code>results/run_log.txt</code>。</li>
 <li>後續可沿用 HW1 的 Streamlit 架構做成網頁表單；並應定期以新成交資料重訓（本資料只涵蓋 2014–2015，房價已大幅變動）。</li>
 </ul>
 
