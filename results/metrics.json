@@ -215,6 +215,17 @@
       "MAE_$": 76681.36929,
       "MAPE_%": 13.739388
     },
+    "Lasso (M4 design)": {
+      "R2_log": 0.877243,
+      "AdjR2_log": NaN,
+      "CV_R2_log (5-fold mean)": 0.878216,
+      "CV_R2_log (std)": 0.002596,
+      "MSE_log": 0.03433,
+      "R2_$": 0.864743,
+      "RMSE_$": 143021.042713,
+      "MAE_$": 77072.463101,
+      "MAPE_%": 13.807391
+    },
     "ElasticNet (Optuna, M4 design)": {
       "R2_log": 0.878093,
       "AdjR2_log": NaN,

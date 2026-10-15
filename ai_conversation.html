@@ -21,8 +21,8 @@
 </head>
 <body>
 <h1>AI 輔助內容：Claude Code 對話紀錄</h1>
-<div class="sub">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07、2026-10-12<br>
-說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。作業分三段完成：第一段建立完整分析，第二段依評分標準補強，第三段對照課程講義補強。只收錄和作業內容有關的對話。</div>
+<div class="sub">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07 – 2026-10-15<br>
+說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。作業分四段完成：第一段建立完整分析，第二段依評分標準補強，第三段對照課程講義補強，第四段對照作業頁新增的建議補強。只收錄和作業內容有關的對話。</div>
 
 <h2>第一段：建立完整分析</h2>
 <div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW2 要延伸自我的 HW1。</div>
@@ -82,6 +82,22 @@
 <li><b>Optuna</b>：對 Elastic Net 的 alpha 與 l1_ratio 搜尋 40 次，最佳結果 CV R² 0.8789，和 OLS 完全相同，確認不需要正則化。第一次執行時一次訓練要 18 秒以上，改用預先計算 Gram 矩陣後降到 0.04 秒。</li>
 <li><b>多項式回歸 M5</b>：12 個特徵的二次項與交互作用（87 項）加 zipcode，測試 R² 0.887，美元 RMSE $134,921，比 HistGradientBoosting 還低。</li>
 <li><b>報告</b>：加入 MSE 與各指標的定義、五大假設檢查表（補上線性假設）、資料型態欄位、dummy variable trap 說明、gzip 部署（57 KB → 39 KB）、CRISP-DM 總結表；「GPT 輔助內容」改為「AI 輔助內容（Claude Code）」。</li>
+</ul></div>
+
+
+<h2>第四段：對照作業頁新增的建議</h2>
+<div class="msg user"><div class="who">學生</div>（貼上 iLearning 作業頁截圖，頁面下方新增了「Kaggle Multiple Linear Regression Problems（14–39 Features）」與「Suggested Assignment: CRISP-DM + Feature Selection」）看看要怎麼整理，處理好。</div>
+<div class="msg ai"><div class="who">AI</div>對照作業頁新增的建議逐項檢查：
+<ul>
+<li><b>特徵數 14–39 個</b>：本資料集 18 個特徵，同時符合原本的 10–20 個，不用換資料集。</li>
+<li><b>Evaluation 要比較 MAE、MSE、RMSE、R²、Adjusted R²，並檢查五大假設</b>：已經有了。</li>
+<li><b>還缺三項</b>：(1) Feature Selection 要比較 SelectKBest、RFE、Sequential Feature Selection、Lasso、permutation importance，選不同數量的特徵，只用訓練資料；(2) Modeling 要同時訓練 LinearRegression、Ridge 和 Lasso，原本缺 Lasso；(3) Deployment 要預測新樣本並解釋模型。</li>
+</ul></div>
+<div class="msg ai"><div class="who">AI</div>補上這三項（原本的模型數字不變）：
+<ul>
+<li><b>五種方法 × k = 5、8、12、14</b>：SelectKBest 最差（k = 12 時 R² 0.738），因為只看單變量相關，會挑進一堆共線的面積欄位。其他四種方法到 k = 8 就有 R² 0.76，k ≥ 12 後停在 0.77。共線性是關鍵差別：k = 12 時只有 Sequential FS 的最大 VIF 接近 5（5.2，R² 0.774），其餘都在 17.8–19.4。Sequential FS 選出的 12 個特徵和 Forward Stepwise 前 12 名完全相同。報告如實寫出它比 M3 準 0.013，以及仍選 M3 的理由（嚴格 VIF ≤ 5、不用鄰居平均面積）。</li>
+<li><b>Lasso 模型</b>：LassoCV 在 M4 設計上 R² 0.877，81 個係數中 79 個非零，和 OLS 幾乎相同。</li>
+<li><b>預測並解釋新樣本</b>：<code>predict.py</code> 加上 <code>--explain</code>，把預測價精確拆成「一般房子 $465,592 × 每個特徵的百分比影響」。以 Mercer Island 臨水豪宅為例：預測 $2,615,671，主要來自臨水 +62%、地段 +50%、面積 +34%、等級 +30%、景觀 +28%。報告另列三間新房子的預測與 95% 預測區間。第一次執行時，因為 <code>remove_data()</code> 之後係數失去欄位名稱而出錯，改成在 <code>remove_data()</code> 之前先算好 zipcode 平均效果。</li>
 </ul></div>
 
 </body>

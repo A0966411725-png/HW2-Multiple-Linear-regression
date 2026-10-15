@@ -23,7 +23,8 @@ import pandas as pd
 import statsmodels.api as sm
 from scipy import stats
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
-from sklearn.feature_selection import RFECV
+from sklearn.feature_selection import RFE, RFECV, SelectKBest, SequentialFeatureSelector, f_regression
+from sklearn.inspection import permutation_importance
 from sklearn.linear_model import ElasticNet, LassoCV, LinearRegression, RidgeCV
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score, learning_curve, train_test_split
@@ -412,6 +413,69 @@ ax2.grid(False)
 ax2.spines["right"].set_visible(True)
 save(fig, "16_selection_methods.png")
 
+# 4.9 Assignment page's suggested comparison: SelectKBest, RFE, Sequential Feature Selection, Lasso
+#     and permutation importance, each picking k features using TRAINING data only.
+K_LIST = [5, 8, 12, 14]
+Ztr = pd.DataFrame(scaler.transform(Xtr), columns=CANDIDATES, index=Xtr.index)
+Xa, Xb, ya, yb = train_test_split(Ztr, ytr, test_size=0.25, random_state=SEED)  # split inside the training set
+perm = permutation_importance(LinearRegression().fit(Xa, ya), Xb, yb, n_repeats=10, random_state=SEED, scoring="r2")
+perm_rank = pd.Series(perm.importances_mean, index=CANDIDATES).sort_values(ascending=False)
+lasso_rank = lasso_coef.abs().sort_values(ascending=False)
+pd.DataFrame({"permutation_importance": perm_rank, "lasso_abs_coef": lasso_rank}).round(5).to_csv(
+    os.path.join(RES, "feature_rankings.csv"))
+cand_arr = np.array(CANDIDATES)
+
+
+def pick_k(method, k):
+    if method == "SelectKBest":
+        return list(cand_arr[SelectKBest(f_regression, k=k).fit(Ztr, ytr).get_support()])
+    if method == "RFE":
+        return list(cand_arr[RFE(LinearRegression(), n_features_to_select=k).fit(Ztr, ytr).support_])
+    if method == "Sequential FS":
+        sfs = SequentialFeatureSelector(LinearRegression(), n_features_to_select=k, direction="forward",
+                                        cv=kf, scoring="r2").fit(Ztr, ytr)
+        return list(cand_arr[sfs.get_support()])
+    if method == "Lasso":
+        return list(lasso_rank.index[:k])
+    return list(perm_rank.index[:k])  # permutation importance
+
+
+K_METHODS = ["SelectKBest", "RFE", "Sequential FS", "Lasso", "Permutation importance"]
+krows = []
+for meth in K_METHODS:
+    for k in K_LIST:
+        cols = pick_k(meth, k)
+        sc_ = lr_scores(cols)
+        n_te = len(yte)
+        krows.append({"method": meth, "k": k, **sc_,
+                      "test_AdjR2": 1 - (1 - sc_["test_R2"]) * (n_te - 1) / (n_te - k - 1),
+                      "max_VIF": float(vif_table(Xtr[cols]).max()), "features": ", ".join(cols)})
+kdf = pd.DataFrame(krows)
+kdf.round(4).to_csv(os.path.join(RES, "selection_k_sweep.csv"), index=False)
+print("\nSelection methods x k (test R² / max VIF):")
+print(kdf.pivot(index="method", columns="k", values="test_R2").round(4).to_string())
+print(kdf.pivot(index="method", columns="k", values="max_VIF").round(1).to_string())
+
+fig, ax = plt.subplots(1, 2, figsize=(13, 4.4))
+mk = dict(zip(K_METHODS, ["o", "s", "^", "D", "v"]))
+cl = dict(zip(K_METHODS, [GRAY, ORANGE, BLUE, AQUA, "#9b59b6"]))
+for meth in K_METHODS:
+    sub = kdf[kdf["method"] == meth]
+    ax[0].plot(sub["k"], sub["test_R2"], marker=mk[meth], color=cl[meth], lw=1.8, ms=6, label=meth)
+    ax[1].plot(sub["k"], sub["max_VIF"], marker=mk[meth], color=cl[meth], lw=1.8, ms=6, label=meth)
+m3_sc = lr_scores(selected)
+ax[0].scatter([len(selected)], [m3_sc["test_R2"]], marker="*", s=260, color=INK, zorder=5, label="M3 (vote + VIF<=5)")
+ax[1].scatter([len(selected)], [vif_table(Xtr[selected]).max()], marker="*", s=260, color=INK, zorder=5)
+ax[0].set(title="Test R² by method and number of features k", xlabel="k (features kept)", ylabel="test R² (log price)",
+          xticks=K_LIST)
+ax[0].legend(fontsize=8.5, loc="lower right")
+ax[1].axhline(5, color=INK2, ls="--", lw=1)
+ax[1].text(13.1, 5.4, "VIF = 5", color=INK2, fontsize=9)
+ax[1].set(title="Largest VIF in the chosen subset (multicollinearity)", xlabel="k (features kept)", ylabel="max VIF",
+          xticks=K_LIST)
+fig.tight_layout()
+save(fig, "19_selection_k_sweep.png")
+
 # ---------------------------------------------------------------------
 print("\n" + "=" * 70)
 print("4. MODELING - MODELS")
@@ -482,6 +546,11 @@ cv_rows[M4_NAME] = cv_r2(LinearRegression(), Xtr4, ytr)
 ridge = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-3, 3, 30))).fit(Xtr4, ytr)
 results["Ridge (M4 design)"] = dollar_metrics(yte, ridge.predict(Xte4))
 cv_rows["Ridge (M4 design)"] = cv_r2(make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-3, 3, 30))), Xtr4, ytr)
+lasso4 = make_pipeline(StandardScaler(), LassoCV(cv=kf, random_state=SEED, n_alphas=50)).fit(Xtr4, ytr)
+results["Lasso (M4 design)"] = dollar_metrics(yte, lasso4.predict(Xte4))
+cv_rows["Lasso (M4 design)"] = cv_r2(make_pipeline(StandardScaler(), LassoCV(cv=kf, random_state=SEED, n_alphas=50)), Xtr4, ytr)
+print(f"Lasso (M4 design): alpha = {lasso4[-1].alpha_:.2e}, "
+      f"non-zero coefficients = {(lasso4[-1].coef_ != 0).sum()}/{Xtr4.shape[1]}")
 
 # Optuna: tune Elastic Net (alpha, l1_ratio) on the M4 design by 5-fold CV R²
 def enet(alpha, l1):
@@ -831,8 +900,13 @@ save(fig, "15_autoregression_weekly.png")
 print("\n" + "=" * 70)
 print("6. DEPLOYMENT")
 print("=" * 70)
+zip_cols = [c for c in Xtr4.columns if c.startswith("zip_")]
+zip_mean_effect = float((Xtr4[zip_cols] @ m4.params[zip_cols]).mean())  # before remove_data()
 m4.remove_data()  # drop stored training arrays (34 MB -> small); predictions/intervals still work
 bundle = {"model": m4, "features": selected, "zip_levels": zip_levels,
+          # for explaining a prediction against the "average" training house (predict.py --explain)
+          "x_mean": Xtr[selected].mean().to_dict(),
+          "zip_mean_effect": zip_mean_effect,
           "note": "statsmodels OLS on log(price); use predict_price() in predict.py"}
 MODEL_PATH = os.path.join(MOD, "house_price_mlr.pkl.gz")
 with gzip.open(MODEL_PATH, "wb") as f:  # pickle + gzip compression (lecture L6 Step 5)

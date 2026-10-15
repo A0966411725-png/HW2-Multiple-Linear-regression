@@ -109,6 +109,23 @@ Best subset (BIC, 16)                16.0        0.0630  187284.0739   0.7748  1
 Consensus + VIF<=5 (= M3)            12.0        0.0668  195198.6595   0.7611   4.4362
   [fig] figures/16_selection_methods.png
 
+Selection methods x k (test R² / max VIF):
+k                           5       8       12      14
+method                                                
+Lasso                   0.7313  0.7613  0.7726  0.7745
+Permutation importance  0.7183  0.7613  0.7726  0.7745
+RFE                     0.7349  0.7611  0.7714  0.7745
+SelectKBest             0.5624  0.7321  0.7376  0.7422
+Sequential FS           0.7497  0.7657  0.7739  0.7742
+k                        5    8     12    14
+method                                      
+Lasso                   4.7  6.2  17.8  19.6
+Permutation importance  2.8  6.2  17.8  19.6
+RFE                     2.5  4.4  19.3  19.6
+SelectKBest             5.6  6.8  19.4  19.4
+Sequential FS           2.6  4.1   5.2   6.7
+  [fig] figures/19_selection_k_sweep.png
+
 ======================================================================
 4. MODELING - MODELS
 ======================================================================
@@ -125,6 +142,7 @@ M3 assumption checks:
   max VIF                                          4.4362
   features significant with HC3 robust SE (p<0.05) 11/12
   not significant with HC3                         log_sqft_lot (p=0.078)
+Lasso (M4 design): alpha = 3.67e-04, non-zero coefficients = 79/81
 
 Optuna ElasticNet: best alpha = 1.10e-05, l1_ratio = 0.00, CV R² = 0.8789 (OLS M4 CV R² = 0.8789)
   [fig] figures/18_optuna_elasticnet.png
@@ -143,6 +161,7 @@ M2 MLR all (17 feat.)              0.7748     0.7739                   0.7715   
 M3 MLR selected (12 feat.)         0.7611     0.7604                   0.7609           0.0055   0.0668  0.7481  195198.6595  113288.4819  20.3019
 M4 MLR selected + zipcode one-hot  0.8781     0.8757                   0.8789           0.0027   0.0341  0.8657  142490.7931   76677.6776  13.7389
 Ridge (M4 design)                  0.8781        NaN                   0.8789           0.0027   0.0341  0.8657  142496.3165   76681.3693  13.7394
+Lasso (M4 design)                  0.8772        NaN                   0.8782           0.0026   0.0343  0.8647  143021.0427   77072.4631  13.8074
 ElasticNet (Optuna, M4 design)     0.8781        NaN                   0.8789           0.0027   0.0341  0.8657  142492.9758   76679.1449  13.7391
 M5 Polynomial deg-2 + zipcode      0.8868     0.8825                   0.8891           0.0028   0.0317  0.8796  134920.9068   73295.3494  13.0872
 Random Forest (benchmark)          0.8924        NaN                   0.8889           0.0037   0.0301  0.8613  144842.2972   70493.2392  12.2821
@@ -174,7 +193,7 @@ M4 MLR selected + zipcode one-hot  57.4  73.5  83.4  90.5  94.0  97.6
 ======================================================================
 6. DEPLOYMENT
 ======================================================================
-  saved model/house_price_mlr.pkl.gz  (M4: selected features + zipcode; pickle 57 KB -> gzip 39 KB)
+  saved model/house_price_mlr.pkl.gz  (M4: selected features + zipcode; pickle 58 KB -> gzip 40 KB)
   demo house id=7283900521: actual $352,500, predicted $365,494 (95% PI $256,155 - $521,502)
 
 Done.
