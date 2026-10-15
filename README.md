@@ -1,3 +1,9 @@
+![King County 房價估算網站](website.png)
+
+房價估算網站（Streamlit）：在專案資料夾執行 `streamlit run app.py`。
+
+[GitHub 原始碼](https://github.com/A0966411725-png/HW2-Multiple-Linear-regression)
+
 # HW2 — King County House Price Prediction (Multiple Linear Regression, CRISP-DM)
 
 學號 7115064191 ｜ 延伸自 [HW1-CWA-Weather](https://github.com/A0966411725-png/HW1-CWA-Weather)
@@ -10,6 +16,7 @@ pip install -r requirements.txt
 python 7115064191_hw2.py      # full CRISP-DM pipeline → figures/, results/, model/  (Mac: python3, 1–2 min)
 python predict.py --sqft_living 2000 --grade 8 --zipcode 98052 --lat 47.68
 python predict.py --explain    # why the model predicts this price
+streamlit run app.py           # house-price website (screenshot above)
 ```
 Run on macOS and Windows with identical results (latest version, with Optuna, verified on Windows). On Windows with Smart App Control, the newest pandas / scikit-learn DLLs may be blocked; use a venv with `pandas==2.2.3 scikit-learn==1.5.2`.
 
@@ -21,7 +28,7 @@ Run on macOS and Windows with identical results (latest version, with Optuna, ve
 | Data Preparation | Drop duplicate/invalid rows (21,613 → 21,419), `log(price)`, `house_age`, `is_renovated`, `has_basement`, log areas, zipcode one-hot; 80/20 split |
 | Modeling | Feature selection: correlation, VIF, backward elimination (p<0.05), RFECV, LassoCV, plus forward stepwise and exhaustive best-subset search (131,071 subsets) as cross-checks; every method compared on the test set, plus the assignment page's SelectKBest / RFE / Sequential FS / Lasso / permutation importance at k = 5, 8, 12, 14 (training data only) → **12 features**; models M1–M5 (M5 = degree-2 polynomial), Ridge, Lasso, **Optuna-tuned Elastic Net**, RF/HGB benchmarks; supplementary AR(3) on weekly median price |
 | Evaluation | MSE, RMSE, MAE, MAPE, R², Adj R², 5-fold CV; training/test curves and learning curves (overfit/underfit); the five MLR assumptions (Breusch-Pagan, Jarque-Bera, Durbin-Watson, VIF, HC3 robust SE); PI calibration at 50–99%; residual map; success-criteria check |
-| Deployment | `model/house_price_mlr.pkl.gz` (pickle + gzip) + `predict.py` (price + 95% CI/PI; `--explain` breaks the prediction down feature by feature) |
+| Deployment | `model/house_price_mlr.pkl.gz` (pickle + gzip) + `predict.py` (price + 95% CI/PI; `--explain` breaks the prediction down feature by feature) + Streamlit website `app.py` |
 
 ## Results (test set, 4,284 houses)
 | Model | #feat | R² (log) | CV R² | RMSE ($) | MAPE | 95% PI coverage |
@@ -51,6 +58,7 @@ Public solutions summarised with NotebookLM report R² ≈ 0.65–0.70 for multi
 ## Files
 - `7115064191_hw2.py` — main program (also writes `results/run_log.txt`)
 - `predict.py` — deployment demo (predict + explain new houses)
+- `app.py` — Streamlit house-price website; `website.png` — its screenshot
 - `7115064191_hw2_report.pdf` / `report.html` — report (CRISP-DM, AI 輔助內容 (Claude Code), NotebookLM 摘要, 主流解法比較)
 - `7115064191_ai_conversation.pdf` / `ai_conversation.html` — AI 輔助內容 (Claude Code conversation log)
 - `figures/` (19 charts), `results/` (metrics, feature selection, selection-method comparison, methods × k sweep, feature rankings, best subset, Optuna trials, diagnostics, PI calibration, AR), `model/` — generated outputs

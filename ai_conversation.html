@@ -22,7 +22,7 @@
 <body>
 <h1>AI 輔助內容：Claude Code 對話紀錄</h1>
 <div class="sub">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07 – 2026-10-15<br>
-說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。作業分四段完成：第一段建立完整分析，第二段依評分標準補強，第三段對照課程講義補強，第四段對照作業頁新增的建議補強。只收錄和作業內容有關的對話。</div>
+說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。作業分五段完成：第一段建立完整分析，第二段依評分標準補強，第三段對照課程講義補強，第四段對照作業頁新增的建議補強，第五段部署成網站。只收錄和作業內容有關的對話。</div>
 
 <h2>第一段：建立完整分析</h2>
 <div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW2 要延伸自我的 HW1。</div>
@@ -99,6 +99,17 @@
 <li><b>Lasso 模型</b>：LassoCV 在 M4 設計上 R² 0.877，81 個係數中 79 個非零，和 OLS 幾乎相同。</li>
 <li><b>預測並解釋新樣本</b>：<code>predict.py</code> 加上 <code>--explain</code>，把預測價精確拆成「一般房子 $465,592 × 每個特徵的百分比影響」。以 Mercer Island 臨水豪宅為例：預測 $2,615,671，主要來自臨水 +62%、地段 +50%、面積 +34%、等級 +30%、景觀 +28%。報告另列三間新房子的預測與 95% 預測區間。第一次執行時，因為 <code>remove_data()</code> 之後係數失去欄位名稱而出錯，改成在 <code>remove_data()</code> 之前先算好 zipcode 平均效果。</li>
 </ul></div>
+
+
+<h2>第五段：部署成網站</h2>
+<div class="msg user"><div class="who">學生</div>README 最上面記得放網站的截圖。</div>
+<div class="msg ai"><div class="who">AI</div>參考 HW1 的 README（最上面是 Streamlit 網站截圖），HW2 原本只有命令列工具，所以延續 HW1 的架構，把 M4 模型做成 Streamlit 網站 <code>app.py</code>：
+<ul>
+<li>左側輸入房屋條件；選 zipcode 時自動帶入該區的緯度，使用者不用自己查經緯度。</li>
+<li>右側即時顯示預測價、95% 預測區間與信賴區間，並用長條圖逐項解釋各條件對價格的影響，以及各 zipcode 的位置與中位房價。</li>
+<li>修正兩個顯示問題：金額裡有兩個「$」時，Streamlit 會把中間的文字當成數學公式，所以把「$」跳脫；線上地圖在截圖時無法載入，改用 Altair 畫各區位置圖。</li>
+</ul>
+截圖放在 README 最上面，並加入報告 6.3 節。</div>
 
 </body>
 </html>
