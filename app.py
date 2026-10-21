@@ -8,6 +8,7 @@ Run 7115064191_hw2.py first to create model/house_price_mlr.pkl.gz, then:
 """
 import gzip
 import hashlib
+import importlib
 import json
 import os
 import pickle
@@ -20,8 +21,13 @@ import pandas as pd
 import streamlit as st
 
 import generic_mlr
-from generic_mlr import METHODS, Pipeline, guess_feature_columns
-from predict import explain_price, predict_price
+import predict
+
+# Streamlit Cloud may keep an old copy of local modules after a git pull; reload them on every run
+generic_mlr = importlib.reload(generic_mlr)
+predict = importlib.reload(predict)
+from generic_mlr import METHODS, Pipeline, guess_feature_columns  # noqa: E402
+from predict import explain_price, predict_price  # noqa: E402
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 warnings.filterwarnings("ignore")  # e.g. statsmodels rank-deficiency warnings for user datasets
