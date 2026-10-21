@@ -38,7 +38,7 @@
 <body>
 
 <h1>HW2：King County 房價預測 — 多元線性回歸</h1>
-<div class="sub">學號 7115064191 ｜ 依循 CRISP-DM 流程 ｜ 主程式 <code>7115064191_hw2.py</code> ｜ GitHub：<a href="https://github.com/A0966411725-png/HW2-Multiple-Linear-regression">A0966411725-png/HW2-Multiple-Linear-regression</a></div>
+<div class="sub">學號 7115064191 ｜ 依循 CRISP-DM 流程 ｜ 主程式 <code>7115064191_hw2.py</code> ｜ 網站：<a href="https://hw2-mlr-yenkai.streamlit.app/">hw2-mlr-yenkai.streamlit.app</a> ｜ GitHub：<a href="https://github.com/A0966411725-png/HW2-Multiple-Linear-regression">A0966411725-png/HW2-Multiple-Linear-regression</a></div>
 
 <div class="box">
 <b>資料集來源</b>：House Sales in King County, USA（Kaggle，作者 harlfoxem，授權 CC0 公眾領域）<br>
@@ -61,7 +61,7 @@
 <b>目錄</b>
 <ol class="toc">
 <li>Business Understanding</li><li>Data Understanding</li><li>Data Preparation</li><li>Modeling（特徵選擇、方法比較、五種方法 × k、Optuna、多項式回歸、AR）</li>
-<li>Evaluation（指標、overfit 判斷、五大假設、預測區間校準、成功標準）</li><li>Deployment（預測新樣本並解釋）</li><li>網路主流解法比較與說明</li><li>AI 輔助內容（Claude Code）</li><li>NotebookLM 摘要</li><li>結論與限制</li>
+<li>Evaluation（指標、overfit 判斷、五大假設、預測區間校準、成功標準）</li><li>Deployment（預測新樣本、解釋、網站）</li><li>網路主流解法比較與說明</li><li>AI 輔助內容（Claude Code）</li><li>NotebookLM 摘要</li><li>結論與限制</li>
 </ol>
 
 <svg class="flow" viewBox="0 0 900 118" xmlns="http://www.w3.org/2000/svg" font-family="PingFang TC, Microsoft JhengHei, sans-serif">
@@ -372,9 +372,16 @@ Why? Typical King County house (all features at the training average): $465,592
   ...（其餘 8 個特徵各自影響都在 ±5% 以內）
   = predicted price $2,615,671</pre>
 <p>這間房子比一般房子貴 5.6 倍，主要來自臨水（+62%）、Mercer Island 的地段（+50%）、面積（+34%）、建築等級（+30%）與景觀（+28%），其餘特徵影響都很小。這種逐項拆解是線性回歸相對於樹模型最大的優勢：估價結果可以向買賣雙方說明「貴在哪裡」。</p>
-<h3>6.3 房價估算網站（Streamlit）</h3>
-<p>延續 HW1 的 Streamlit 架構，把模型做成網頁 <code>app.py</code>（執行 <code>streamlit run app.py</code>）：左側輸入房屋條件，選擇 zipcode 時會自動帶入該區的緯度；右側即時顯示預測價、95% 預測區間與信賴區間，並用長條圖逐項解釋每個條件對價格的影響（和 6.2 節的拆解相同），也標出房子在 King County 的位置與各區中位房價。網頁底部列出模型在測試集上的 R²、CV R²、MAPE 與預測區間覆蓋率。</p>
-<figure><img src="website.png"><figcaption>圖 20　房價估算網站截圖（預設條件：Redmond 98052、2,000 sqft、grade 8）</figcaption></figure>
+<h3>6.3 部署成網站（Streamlit）</h3>
+<p>網址：<a href="https://hw2-mlr-yenkai.streamlit.app/">https://hw2-mlr-yenkai.streamlit.app/</a>（程式 <code>app.py</code>、<code>generic_mlr.py</code>，部署在 Streamlit Community Cloud）。左側<b>下拉選單可以切換三種 problem</b>：</p>
+<table>
+<tr><th>Problem</th><th>內容</th></tr>
+<tr><td>① King County 房價（主模型）</td><td>輸入房屋條件（選 zipcode 自動帶入緯度），即時顯示預測價、95% 預測區間與信賴區間，並用長條圖逐項解釋每個條件對價格的影響（同 6.2 節）。</td></tr>
+<tr><td>② 50 Startups 利潤</td><td>課程範例資料集（老師提供的 CSV 網址），用同一套通用流程分析。</td></tr>
+<tr><td>③ 自行輸入資料集</td><td><b>任意輸入 Dataset</b>：貼上 CSV 網址或上傳檔案，選擇目標欄位與特徵後自動完成 CRISP-DM：資料理解（筆數、欄位、缺失值）→ 資料準備（中位數補值、one-hot 並避開 dummy trap、train/test split）→ 特徵選擇（SelectKBest、RFE、Sequential FS、Lasso、permutation importance，只用訓練資料，可調 k）→ 多元線性回歸（係數、p 值、95% CI）→ 評估（MAE、MSE、RMSE、R²、Adjusted R²、overfit 判斷、含 95% 預測區間的預測圖）→ 預測新樣本。</td></tr>
+</table>
+<figure><img src="website.png"><figcaption>圖 20　網站 Problem ①：King County 房價估算</figcaption></figure>
+<figure><img src="website_problem2.png"><figcaption>圖 21　網站 Problem ②：50 Startups 利潤預測（Problem ③ 使用同一套流程，可輸入任意 CSV）</figcaption></figure>
 <ul>
 <li>程式在 macOS（python3）與 Windows（python）上都執行過，結果一致（加入 Optuna 的最新版本在 Windows 上驗證）。執行紀錄會自動寫入 <code>results/run_log.txt</code>。</li>
 <li>後續可沿用 HW1 的 Streamlit 架構做成網頁表單；並應定期以新成交資料重訓（本資料只涵蓋 2014–2015，房價已大幅變動）。</li>
@@ -400,8 +407,8 @@ Why? Typical King County house (all features at the training average): $465,592
 <p><b>比較結論</b>：樹模型準確度最高，但 M4 線性回歸只差約 2–3 個百分點（R² 0.878 vs 0.905），而且已經超過網路上常見的樹模型成績（0.85–0.87）；加上交互作用的 M5（R² 0.887）在美元 RMSE 上甚至比 HistGradientBoosting 還低。線性回歸能做到這個程度，關鍵是三件事：log 轉換、系統化的特徵選擇、zipcode 地段固定效果。若目標是解釋與估價範圍，線性回歸更合適；若只求點預測準確度，則選梯度提升樹。</p>
 
 <h2 class="pb">8. AI 輔助內容（Claude Code 對話過程）</h2>
-<div class="box">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07 – 2026-10-15<br>
-說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。完整對話紀錄另附 <code>7115064191_ai_conversation.pdf</code>。作業分五段完成：第一段建立完整分析，第二段依評分標準補強，第三段對照課程講義補強，第四段對照作業頁新增的建議補強，第五段部署成網站。只收錄和作業內容有關的對話。</div>
+<div class="box">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07 – 2026-10-21<br>
+說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。完整對話紀錄另附 <code>7115064191_ai_conversation.pdf</code>。作業分六段完成：建立分析 → 依評分標準補強 → 對照課程講義 → 對照作業頁建議 → 做成網站 → 依老師更新的要求補上加分項目並部署。只收錄和作業內容有關的對話。</div>
 
 <h3>第一段：建立完整分析</h3>
 <div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW2 要延伸自我的 HW1。</div>
@@ -490,6 +497,13 @@ Why? Typical King County house (all features at the training average): $465,592
 </ul>
 截圖放在 README 最上面，並加入報告 6.3 節。</div>
 
+
+<h3>第六段：依老師更新的要求補上加分項目並部署</h3>
+<div class="msg user"><div class="who">學生</div>（貼上更新後的作業說明截圖）老師作業要求有改，主要繳交改成「跟 DIC2 一樣 github and web」，另外有加分：下拉視窗呈現兩種 problem（+1）、可任意輸入 Dataset（+2）。</div>
+<div class="msg ai"><div class="who">AI</div>對照新要求：資料集 18 個特徵符合「大於 13 個」；報告、對話、圖表改為選繳但都已具備；缺的是兩個加分項目與公開網站。網站改成左側下拉選單切換三種 problem：① King County 房價（主模型 M4）、② 50 Startups 利潤（老師提供的 CSV 網址）、③ 自行輸入資料集（CSV 網址或上傳）。②③ 共用新寫的 <code>generic_mlr.py</code>：自動補缺值、one-hot 編碼（避開 dummy trap）、只用訓練資料做特徵選擇（SelectKBest、RFE、Sequential FS、Lasso、permutation importance）、OLS、MAE／MSE／RMSE／R²／Adjusted R²、含 95% 預測區間的預測圖與新樣本預測。用 King County 原始資料測試時，發現 date 欄位會被展開成 386 個虛擬變數、id 也被當成特徵，因此預設排除 id 欄位和類別值超過 30 種的文字欄位。</div>
+<div class="msg user"><div class="who">學生</div>（登入 Streamlit Community Cloud）幫我填，按 Deploy。</div>
+<div class="msg ai"><div class="who">AI</div>部署到 <a href="https://hw2-mlr-yenkai.streamlit.app/">https://hw2-mlr-yenkai.streamlit.app/</a>。雲端裝的是 pandas 3.0，文字欄位的型態從 object 改成新的字串型態，導致 50 Startups 的 State 沒有被當成類別；改成「非數值就視為類別」後兩個版本都正確。Problem ① 雲端與本機的預測值完全相同（$555,052）。README 最上面放上網站連結與截圖。</div>
+
 <h2 class="pb">9. NotebookLM 摘要</h2>
 <div class="box">工具：Google NotebookLM（Gemini Notebook），筆記本「King County House Price Prediction Models」，2026-10-07。<br>
 來源（7 個）：Kaggle 資料集頁面；nbviewer christopherbronner/house-prices；GitHub raxshah/Simple-Linear-Regression-Python、ShamGit123/Predecting-House-Price-using-machine-learning-concepts、codewithchirag18/House-Sale-Analysis-EDA-Regression-Python；AI Planet「Predict the House Prices King County」；ITM Conferences KEIS 2025 論文（itmconf_keis2025_01023）。</div>
@@ -510,7 +524,7 @@ Why? Typical King County house (all features at the training average): $465,592
 <tr><td>Data Preparation</td><td>清理、轉換、切分</td><td>去除重複與錯誤資料、log 轉換、特徵工程、one-hot（避開 dummy trap）、80/20 切分</td><td>21,419 筆、17 個候選特徵</td></tr>
 <tr><td>Modeling</td><td>選特徵、建模型</td><td>十種以上特徵選擇方法比較（含作業頁建議的 SelectKBest、RFE、SFS、Lasso、permutation importance）；M1–M5、Ridge、Lasso、Optuna Elastic Net、AR 補充、樹模型對照</td><td>12 個特徵；M4 R² 0.878、M5 R² 0.887</td></tr>
 <tr><td>Evaluation</td><td>評估準確度與可信度</td><td>MSE／RMSE／MAE／MAPE／R²、CV、overfit 曲線、五大假設、PI 校準</td><td>M4 達成全部成功標準；PI 覆蓋 94%</td></tr>
-<tr><td>Deployment</td><td>讓模型可以被使用</td><td>pickle + gzip 存檔、<code>predict.py</code> 命令列工具與 Streamlit 網站，預測新樣本並逐項解釋</td><td>輸入房屋條件 → 預測價與 95% CI／PI</td></tr>
+<tr><td>Deployment</td><td>讓模型可以被使用</td><td>pickle + gzip 存檔、<code>predict.py</code> 命令列工具、Streamlit 網站（三種 problem、任意資料集）</td><td>輸入房屋條件 → 預測價與 95% CI／PI</td></tr>
 </table>
 <h3>結論</h3>
 <ol>

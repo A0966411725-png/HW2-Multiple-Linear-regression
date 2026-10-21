@@ -21,8 +21,8 @@
 </head>
 <body>
 <h1>AI 輔助內容：Claude Code 對話紀錄</h1>
-<div class="sub">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07 – 2026-10-15<br>
-說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。作業分五段完成：第一段建立完整分析，第二段依評分標準補強，第三段對照課程講義補強，第四段對照作業頁新增的建議補強，第五段部署成網站。只收錄和作業內容有關的對話。</div>
+<div class="sub">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07 – 2026-10-21<br>
+說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。原始完整紀錄另由 Claude 桌面版「Export」匯出。作業分六段完成：建立分析 → 依評分標準補強 → 對照課程講義 → 對照作業頁建議 → 做成網站 → 依老師更新的要求補上加分項目並部署。只收錄和作業內容有關的對話。</div>
 
 <h2>第一段：建立完整分析</h2>
 <div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW2 要延伸自我的 HW1。</div>
@@ -110,6 +110,13 @@
 <li>修正兩個顯示問題：金額裡有兩個「$」時，Streamlit 會把中間的文字當成數學公式，所以把「$」跳脫；線上地圖在截圖時無法載入，改用 Altair 畫各區位置圖。</li>
 </ul>
 截圖放在 README 最上面，並加入報告 6.3 節。</div>
+
+
+<h2>第六段：依老師更新的要求補上加分項目並部署</h2>
+<div class="msg user"><div class="who">學生</div>（貼上更新後的作業說明截圖）老師作業要求有改，主要繳交改成「跟 DIC2 一樣 github and web」，另外有加分：下拉視窗呈現兩種 problem（+1）、可任意輸入 Dataset（+2）。</div>
+<div class="msg ai"><div class="who">AI</div>對照新要求：資料集 18 個特徵符合「大於 13 個」；報告、對話、圖表改為選繳但都已具備；缺的是兩個加分項目與公開網站。網站改成左側下拉選單切換三種 problem：① King County 房價（主模型 M4）、② 50 Startups 利潤（老師提供的 CSV 網址）、③ 自行輸入資料集（CSV 網址或上傳）。②③ 共用新寫的 <code>generic_mlr.py</code>：自動補缺值、one-hot 編碼（避開 dummy trap）、只用訓練資料做特徵選擇（SelectKBest、RFE、Sequential FS、Lasso、permutation importance）、OLS、MAE／MSE／RMSE／R²／Adjusted R²、含 95% 預測區間的預測圖與新樣本預測。用 King County 原始資料測試時，發現 date 欄位會被展開成 386 個虛擬變數、id 也被當成特徵，因此預設排除 id 欄位和類別值超過 30 種的文字欄位。</div>
+<div class="msg user"><div class="who">學生</div>（登入 Streamlit Community Cloud）幫我填，按 Deploy。</div>
+<div class="msg ai"><div class="who">AI</div>部署到 <a href="https://hw2-mlr-yenkai.streamlit.app/">https://hw2-mlr-yenkai.streamlit.app/</a>。雲端裝的是 pandas 3.0，文字欄位的型態從 object 改成新的字串型態，導致 50 Startups 的 State 沒有被當成類別；改成「非數值就視為類別」後兩個版本都正確。Problem ① 雲端與本機的預測值完全相同（$555,052）。README 最上面放上網站連結與截圖。</div>
 
 </body>
 </html>
