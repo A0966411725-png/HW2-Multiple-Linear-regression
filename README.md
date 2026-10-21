@@ -6,11 +6,18 @@
 
 ## 網站功能
 - **下拉選單切換 Problem**（加分 1）：① King County 房價（本作業主模型 M4）、② 50 Startups 利潤、③ 自行輸入資料集。
-- **任意輸入 Dataset**（加分 2）：貼上 CSV 網址（例如 [50_Startups.csv](https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv)）或上傳檔案，選擇目標欄位後，網站自動完成 CRISP-DM：資料理解 → 缺值處理與 one-hot 編碼 → 特徵選擇（SelectKBest / RFE / Sequential FS / Lasso / permutation importance，只用訓練資料）→ 多元線性回歸 → MAE、MSE、RMSE、R²、Adjusted R² → 含 95% 預測區間的預測圖 → 預測新樣本。
+- **Problem ① 五個分頁**：🏠 估價（預測價、95% PI/CI、逐項解釋）｜📊 資料探索（價格分佈、任選特徵散佈圖、相關係數熱圖）｜🧪 特徵選擇（各方法比較、五種方法 × k、Forward 路徑）｜📈 模型評估（10 個模型比較、五大假設、預測區間校準、殘差地圖、overfit 曲線）｜📄 報告與 AI 輔助（CRISP-DM 總結、NotebookLM 摘要、報告與對話 PDF 下載）。
+- **任意輸入 Dataset**（加分 2）：貼上 CSV 網址（例如 [50_Startups.csv](https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv)）或上傳檔案，選擇目標欄位後自動完成 CRISP-DM：資料理解（相關係數）→ 缺值處理與 one-hot 編碼 → 特徵選擇（SelectKBest / RFE / Sequential FS / Lasso / permutation importance，只用訓練資料，並自動比較所有方法）→ 多元線性回歸 → MAE、MSE、RMSE、R²、Adjusted R² → 含 95% 預測區間的預測圖、殘差圖、五大假設檢查 → 預測新樣本、下載預測結果 CSV。
 - 不會休眠：GitHub Actions 每 4 小時用瀏覽器造訪網站一次（`.github/workflows/keep-awake.yml`），Streamlit Cloud 免費方案 12 小時沒人造訪才會休眠。
 - 直接連結：[① 房價](https://hw2-mlr-yenkai.streamlit.app/?problem=1)｜[② 50 Startups](https://hw2-mlr-yenkai.streamlit.app/?problem=2)｜[③ 自行輸入](https://hw2-mlr-yenkai.streamlit.app/?problem=3)
 
-![50 Startups 利潤預測](website_problem2.png)
+| 📊 資料探索 | 🧪 特徵選擇 |
+|---|---|
+| ![](screenshots/1_eda.png) | ![](screenshots/1_feature_selection.png) |
+| **📈 模型評估** | **📄 報告與 AI 輔助** |
+| ![](screenshots/1_evaluation.png) | ![](screenshots/1_report.png) |
+| **② 50 Startups 利潤** | **③ 自行輸入資料集** |
+| ![](screenshots/2_startups.png) | ![](screenshots/3_custom_dataset.png) |
 
 # HW2 — King County House Price Prediction (Multiple Linear Regression, CRISP-DM)
 
@@ -66,7 +73,7 @@ Public solutions summarised with NotebookLM report R² ≈ 0.65–0.70 for multi
 ## Files
 - `7115064191_hw2.py` — main program (also writes `results/run_log.txt`)
 - `predict.py` — deployment demo (predict + explain new houses)
-- `app.py` + `generic_mlr.py` — Streamlit website (problem dropdown, any-dataset regression); `website.png`, `website_problem2.png` — screenshots; `data/50_Startups.csv` — offline copy of problem 2 data
+- `app.py` + `generic_mlr.py` — Streamlit website (problem dropdown, any-dataset regression); `website.png`, `website_problem2.png`, `screenshots/` — screenshots (regenerate with `.github/scripts/take_screenshots.py`); `data/50_Startups.csv` — offline copy of problem 2 data
 - `7115064191_hw2_report.pdf` / `report.html` — report (CRISP-DM, AI 輔助內容 (Claude Code), NotebookLM 摘要, 主流解法比較)
 - `7115064191_ai_conversation.pdf` / `ai_conversation.html` — AI 輔助內容 (Claude Code conversation log)
 - `figures/` (19 charts), `results/` (metrics, feature selection, selection-method comparison, methods × k sweep, feature rankings, best subset, Optuna trials, diagnostics, PI calibration, AR), `model/` — generated outputs

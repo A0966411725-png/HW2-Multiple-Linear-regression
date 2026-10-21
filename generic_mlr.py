@@ -114,6 +114,22 @@ class Pipeline:
                 "train_R2": float(self.model.rsquared), "PI95_coverage": float(inside.mean() * 100),
                 "n_train": len(self.ytr), "n_test": n}, sf
 
+    def diagnostics(self):
+        """The five multiple-regression assumptions, checked on the training residuals."""
+        from statsmodels.stats.diagnostic import het_breuschpagan
+        from statsmodels.stats.outliers_influence import variance_inflation_factor
+        from statsmodels.stats.stattools import durbin_watson, jarque_bera
+        res, ex = self.model.resid, self.model.model.exog
+        _, bp_p, _, _ = het_breuschpagan(res, ex)
+        _, jb_p, skew, kurt = jarque_bera(res)
+        X = sm.add_constant(self.Xtr[self.cols], has_constant="add").values
+        vif = max((variance_inflation_factor(X, i) for i in range(1, X.shape[1])), default=1.0) if len(self.cols) > 1 else 1.0
+        # linearity: correlation between residuals and squared fitted values (curvature check)
+        fit = self.model.fittedvalues
+        curv = float(np.corrcoef(res, (fit - fit.mean()) ** 2)[0, 1]) if len(res) > 2 else 0.0
+        return {"curvature_r": curv, "bp_p": float(bp_p), "jb_p": float(jb_p), "skew": float(skew),
+                "kurtosis": float(kurt), "dw": float(durbin_watson(res)), "max_vif": float(vif)}
+
     def predict_frame(self, X, alpha=0.05):
         Xd = sm.add_constant(X[self.cols], has_constant="add")
         sf = self.model.get_prediction(Xd).summary_frame(alpha=alpha)
