@@ -133,6 +133,19 @@
     "features significant with HC3 robust SE (p<0.05)": "11/12",
     "not significant with HC3": "log_sqft_lot (p=0.078)"
   },
+  "m3_influence": {
+    "thresholds": {
+      "cooks_d": 0.00023344032681645754,
+      "leverage": 0.001517362124306974,
+      "abs_studentized_resid": 3.0
+    },
+    "n_influential_cooks": 998,
+    "n_high_leverage": 1404,
+    "n_abs_stud_gt_3": 139,
+    "n_iqr_price_outliers": 903,
+    "max_cooks_d": 0.014828483579708849,
+    "max_abs_coef_change_%": 216.49465463393636
+  },
   "pi_calibration_%": {
     "M3 MLR selected (12 feat.)": {
       "50%": 52.637721755368815,

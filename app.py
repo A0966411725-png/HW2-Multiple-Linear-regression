@@ -182,6 +182,26 @@ def kc_evaluation():
         ["No multicollinearity（無共線性）", "VIF", f"最大 {d['max VIF']:.2f}", "✅ < 5"],
     ], columns=["假設", "方法", "結果", "判讀"]))
 
+    st.markdown("**離群值與影響點（M3，訓練集）**")
+    inf = m.get("m3_influence")
+    if inf:
+        i1, i2, i3, i4 = st.columns(4)
+        i1.metric("Cook's D > 4/n", f"{inf['n_influential_cooks']:,}", f"最大 {inf['max_cooks_d']:.4f}（遠小於 1）",
+                  delta_color="off")
+        i2.metric("高槓桿點", f"{inf['n_high_leverage']:,}", "最高的一群＝臨水房屋", delta_color="off")
+        i3.metric("|學生化殘差| > 3", f"{inf['n_abs_stud_gt_3']:,}")
+        i4.metric("價格 IQR 離群值", f"{inf['n_iqr_price_outliers']:,}", "65% 是臨水或等級 ≥ 10 的豪宅", delta_color="off")
+        sens = read_result("influence_sensitivity.csv").rename(columns={"Unnamed: 0": "訓練資料"})
+        sens["訓練資料"] = sens["訓練資料"].map({"M3 (all training data)": "全部訓練資料",
+                                         "without influential (Cook's D > 4/n)": "移除影響點",
+                                         "without IQR price outliers": "移除價格離群值"})
+        st.dataframe(sens[["訓練資料", "train_rows", "R2_log", "RMSE_$", "MAPE_%", "PI95_coverage_%"]].rename(columns={
+            "train_rows": "筆數", "R2_log": "Test R²", "RMSE_$": "RMSE($)", "MAPE_%": "MAPE(%)", "PI95_coverage_%": "PI 覆蓋率(%)"})
+            .style.format({"Test R²": "{:.3f}", "RMSE($)": "{:,.0f}", "MAPE(%)": "{:.1f}", "PI 覆蓋率(%)": "{:.1f}"}),
+            width="stretch", hide_index=True)
+        st.caption("移除離群值後 R² 沒有提升，預測區間覆蓋率反而下降 → 離群值是真實的豪宅，應該保留。")
+        fig("20_influence.png", "影響點圖與移除前後的標準化係數")
+
     cal = read_result("pi_calibration.csv").rename(columns={"Unnamed: 0": "模型"}).melt(
         "模型", var_name="名目水準", value_name="實際覆蓋率")
     cal["名目"] = cal["名目水準"].str.rstrip("%").astype(float)

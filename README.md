@@ -6,7 +6,7 @@
 
 ## 網站功能
 - **下拉選單切換 Problem**（加分 1）：① King County 房價（本作業主模型 M4）、② 50 Startups 利潤、③ 自行輸入資料集。
-- **Problem ① 五個分頁**：🏠 估價（預測價、95% PI/CI、逐項解釋）｜📊 資料探索（價格分佈、任選特徵散佈圖、相關係數熱圖）｜🧪 特徵選擇（各方法比較、五種方法 × k、Forward 路徑）｜📈 模型評估（10 個模型比較、五大假設、預測區間校準、殘差地圖、overfit 曲線）｜📄 報告與 AI 輔助（CRISP-DM 總結、NotebookLM 摘要、報告與對話 PDF 下載）。
+- **Problem ① 五個分頁**：🏠 估價（預測價、95% PI/CI、逐項解釋）｜📊 資料探索（價格分佈、任選特徵散佈圖、相關係數熱圖）｜🧪 特徵選擇（各方法比較、五種方法 × k、Forward 路徑）｜📈 模型評估（10 個模型比較、五大假設、離群值與影響點、預測區間校準、殘差地圖、overfit 曲線）｜📄 報告與 AI 輔助（CRISP-DM 總結、NotebookLM 摘要、報告與對話 PDF 下載）。
 - **任意輸入 Dataset**（加分 2）：貼上 CSV 網址（例如 [50_Startups.csv](https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv)）或上傳檔案，選擇目標欄位後自動完成 CRISP-DM：資料理解（相關係數）→ 缺值處理與 one-hot 編碼 → 特徵選擇（SelectKBest / RFE / Sequential FS / Lasso / permutation importance，只用訓練資料，並自動比較所有方法）→ 多元線性回歸 → MAE、MSE、RMSE、R²、Adjusted R² → 含 95% 預測區間的預測圖、殘差圖、五大假設檢查 → 預測新樣本、下載預測結果 CSV。
 - 不會休眠：GitHub Actions 每 4 小時用瀏覽器造訪網站一次（`.github/workflows/keep-awake.yml`），Streamlit Cloud 免費方案 12 小時沒人造訪才會休眠。
 - 直接連結：[① 房價](https://hw2-mlr-yenkai.streamlit.app/?problem=1)｜[② 50 Startups](https://hw2-mlr-yenkai.streamlit.app/?problem=2)｜[③ 自行輸入](https://hw2-mlr-yenkai.streamlit.app/?problem=3)
@@ -42,7 +42,7 @@ Run on macOS and Windows with identical results (latest version, with Optuna, ve
 | Data Understanding | 18 features, no missing values, price right-skewed (skew 4.02 → 0.43 after log), collinear area columns |
 | Data Preparation | Drop duplicate/invalid rows (21,613 → 21,419), `log(price)`, `house_age`, `is_renovated`, `has_basement`, log areas, zipcode one-hot; 80/20 split |
 | Modeling | Feature selection: correlation, VIF, backward elimination (p<0.05), RFECV, LassoCV, plus forward stepwise and exhaustive best-subset search (131,071 subsets) as cross-checks; every method compared on the test set, plus the assignment page's SelectKBest / RFE / Sequential FS / Lasso / permutation importance at k = 5, 8, 12, 14 (training data only) → **12 features**; models M1–M5 (M5 = degree-2 polynomial), Ridge, Lasso, **Optuna-tuned Elastic Net**, RF/HGB benchmarks; supplementary AR(3) on weekly median price |
-| Evaluation | MSE, RMSE, MAE, MAPE, R², Adj R², 5-fold CV; training/test curves and learning curves (overfit/underfit); the five MLR assumptions (Breusch-Pagan, Jarque-Bera, Durbin-Watson, VIF, HC3 robust SE); PI calibration at 50–99%; residual map; success-criteria check |
+| Evaluation | MSE, RMSE, MAE, MAPE, R², Adj R², 5-fold CV; training/test curves and learning curves (overfit/underfit); the five MLR assumptions (Breusch-Pagan, Jarque-Bera, Durbin-Watson, VIF, HC3 robust SE); outliers & influential points (Cook's distance, leverage, studentized residuals, sensitivity refit); PI calibration at 50–99%; residual map; success-criteria check |
 | Deployment | `model/house_price_mlr.pkl.gz` (pickle + gzip) + `predict.py` (price + 95% CI/PI; `--explain` breaks the prediction down feature by feature) + Streamlit website `app.py` |
 
 ## Results (test set, 4,284 houses)

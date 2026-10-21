@@ -526,6 +526,88 @@ print("\nM3 assumption checks:")
 for k, v in diagnostics.items():
     print(f"  {k:<48s} {v if isinstance(v, str) else round(v, 4)}")
 
+# M3 outliers & influential points (lecture L5 "linear regression + outlier"):
+# Cook's distance, leverage and studentized residuals, then a sensitivity refit without them.
+infl = m3.get_influence()
+cooks = pd.Series(infl.cooks_distance[0], index=Xtr.index)
+lev = pd.Series(infl.hat_matrix_diag, index=Xtr.index)
+stud = pd.Series(infl.resid_studentized_external, index=Xtr.index)
+n_tr, p_m3 = len(ytr), len(selected) + 1
+COOK_T, LEV_T, STUD_T = 4 / n_tr, 2 * p_m3 / n_tr, 3.0
+influential = cooks > COOK_T
+q1, q3 = np.percentile(train["price"], [25, 75])
+iqr_out = (train["price"] < q1 - 1.5 * (q3 - q1)) | (train["price"] > q3 + 1.5 * (q3 - q1))
+
+
+def refit_without(mask):
+    keep = ~mask
+    m = sm.OLS(ytr[keep], sm.add_constant(Xtr.loc[keep, selected])).fit()
+    sf_ = m.get_prediction(sm.add_constant(Xte[selected])).summary_frame(alpha=0.05)
+    met = dollar_metrics(yte, sf_["mean"], k=len(selected))
+    met["PI95_coverage_%"] = float(((yte >= sf_["obs_ci_lower"]) & (yte <= sf_["obs_ci_upper"])).mean() * 100)
+    return m, met
+
+
+sf3_tmp = m3.get_prediction(sm.add_constant(Xte[selected])).summary_frame(alpha=0.05)
+base_met = dollar_metrics(yte, sf3_tmp["mean"], k=len(selected))
+base_met["PI95_coverage_%"] = float(((yte >= sf3_tmp["obs_ci_lower"]) & (yte <= sf3_tmp["obs_ci_upper"])).mean() * 100)
+m3_noinf, met_noinf = refit_without(influential)
+m3_noiqr, met_noiqr = refit_without(iqr_out)
+coef_shift = pd.DataFrame({"M3 (all)": m3.params, "without influential": m3_noinf.params,
+                           "without IQR price outliers": m3_noiqr.params}).drop("const")
+coef_shift["change_% (influential)"] = (coef_shift["without influential"] / coef_shift["M3 (all)"] - 1) * 100
+coef_shift.round(5).to_csv(os.path.join(RES, "influence_coefficients.csv"))
+sens = pd.DataFrame({"M3 (all training data)": base_met, "without influential (Cook's D > 4/n)": met_noinf,
+                     "without IQR price outliers": met_noiqr}).T
+sens.insert(0, "train_rows", [n_tr, int((~influential).sum()), int((~iqr_out).sum())])
+sens.round(5).to_csv(os.path.join(RES, "influence_sensitivity.csv"))
+top_inf = train.loc[cooks.sort_values(ascending=False).index[:10],
+                    ["id", "price", "sqft_living", "bedrooms", "grade", "condition", "yr_built", "zipcode"]].copy()
+top_inf["cooks_d"] = cooks[top_inf.index]
+top_inf["leverage"] = lev[top_inf.index]
+top_inf["stud_resid"] = stud[top_inf.index]
+top_inf.round(5).to_csv(os.path.join(RES, "influence_top10.csv"), index=False)
+influence_summary = {
+    "thresholds": {"cooks_d": COOK_T, "leverage": LEV_T, "abs_studentized_resid": STUD_T},
+    "n_influential_cooks": int(influential.sum()), "n_high_leverage": int((lev > LEV_T).sum()),
+    "n_abs_stud_gt_3": int((stud.abs() > STUD_T).sum()), "n_iqr_price_outliers": int(iqr_out.sum()),
+    "max_cooks_d": float(cooks.max()),
+    "max_abs_coef_change_%": float(coef_shift["change_% (influential)"].abs().max()),
+}
+print("\nM3 influence analysis:")
+for k, v in influence_summary.items():
+    print(f"  {k}: {v}")
+print(sens[["train_rows", "R2_log", "RMSE_$", "MAPE_%", "PI95_coverage_%"]].round(4).to_string())
+print("coefficient change after removing influential points (%):\n" +
+      coef_shift["change_% (influential)"].round(1).to_string())
+
+fig, ax = plt.subplots(1, 2, figsize=(13.5, 4.8))
+sz = 4 + 400 * cooks / cooks.max()
+flag = influential.values
+ax[0].scatter(lev[~flag], stud[~flag], s=sz[~flag], color=GRAY, alpha=0.35, linewidths=0, label="normal")
+ax[0].scatter(lev[flag], stud[flag], s=sz[flag], color=ORANGE, alpha=0.6, linewidths=0,
+              label=f"Cook's D > 4/n ({int(flag.sum())})")
+for yv in (STUD_T, -STUD_T):
+    ax[0].axhline(yv, color=INK2, ls="--", lw=0.8)
+ax[0].axvline(LEV_T, color=INK2, ls=":", lw=0.8)
+ax[0].set_xscale("log")
+ax[0].set(title="Influence plot (M3, training set; bubble size = Cook's distance)", xlabel="leverage (log scale)",
+          ylabel="studentized residual")
+ax[0].legend(fontsize=8.5, loc="lower left")
+sd_ = Xtr[selected].std()
+cs = coef_shift[["M3 (all)", "without influential"]].mul(sd_, axis=0)  # standardized: effect of +1 SD
+cs = cs.reindex(cs["M3 (all)"].abs().sort_values().index)
+ypos = np.arange(len(cs))
+ax[1].barh(ypos - 0.2, cs["M3 (all)"], height=0.4, color=BLUE, label="all training data")
+ax[1].barh(ypos + 0.2, cs["without influential"], height=0.4, color=ORANGE, label="without influential points")
+ax[1].set_yticks(ypos, cs.index, fontsize=8.5)
+ax[1].axvline(0, color=INK2, lw=0.8)
+ax[1].set(title="M3 standardized coefficients: with vs. without influential points",
+          xlabel="effect of +1 SD on log(price)")
+ax[1].legend(fontsize=8.5, loc="lower right")
+fig.tight_layout()
+save(fig, "20_influence.png")
+
 # M4 MLR selected + zipcode one-hot (location fixed effect) <-- best linear model
 zip_levels = sorted(d["zipcode"].unique())
 
@@ -705,6 +787,7 @@ with open(os.path.join(RES, "metrics.json"), "w", encoding="utf-8") as f:
                "selection_methods_test": sel_cmp.drop(columns="dropped").astype(float).round(6).to_dict(orient="index"),
                "optuna_elasticnet": {"best_params": bp_, "best_cv_r2": float(study.best_value), "n_trials": 40},
                "m3_diagnostics": diagnostics,
+               "m3_influence": influence_summary,
                "pi_calibration_%": calib,
                "rfecv_n_features": int(rfecv.n_features_),
                "lasso_alpha": float(lasso.alpha_),

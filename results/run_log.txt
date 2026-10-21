@@ -142,6 +142,33 @@ M3 assumption checks:
   max VIF                                          4.4362
   features significant with HC3 robust SE (p<0.05) 11/12
   not significant with HC3                         log_sqft_lot (p=0.078)
+
+M3 influence analysis:
+  thresholds: {'cooks_d': 0.00023344032681645754, 'leverage': 0.001517362124306974, 'abs_studentized_resid': 3.0}
+  n_influential_cooks: 998
+  n_high_leverage: 1404
+  n_abs_stud_gt_3: 139
+  n_iqr_price_outliers: 903
+  max_cooks_d: 0.014828483579708849
+  max_abs_coef_change_%: 216.49465463393636
+                                      train_rows  R2_log       RMSE_$   MAPE_%  PI95_coverage_%
+M3 (all training data)                     17135  0.7611  195198.6595  20.3019          94.3978
+without influential (Cook's D > 4/n)       16137  0.7603  196778.9038  20.1565          90.4995
+without IQR price outliers                 16232  0.7543  215651.9541  20.0803          92.6704
+coefficient change after removing influential points (%):
+bedrooms             5.1
+log_sqft_living      0.1
+log_sqft_lot       216.5
+floors              11.9
+waterfront           9.6
+view                -1.0
+condition           -3.2
+grade               -1.3
+has_basement        38.9
+house_age            4.2
+is_renovated        -1.0
+lat                 -0.0
+  [fig] figures/20_influence.png
 Lasso (M4 design): alpha = 3.67e-04, non-zero coefficients = 79/81
 
 Optuna ElasticNet: best alpha = 1.10e-05, l1_ratio = 0.00, CV R² = 0.8789 (OLS M4 CV R² = 0.8789)

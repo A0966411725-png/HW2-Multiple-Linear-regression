@@ -61,7 +61,7 @@
 <b>目錄</b>
 <ol class="toc">
 <li>Business Understanding</li><li>Data Understanding</li><li>Data Preparation</li><li>Modeling（特徵選擇、方法比較、五種方法 × k、Optuna、多項式回歸、AR）</li>
-<li>Evaluation（指標、overfit 判斷、五大假設、預測區間校準、成功標準）</li><li>Deployment（預測新樣本、解釋、網站）</li><li>網路主流解法比較與說明</li><li>AI 輔助內容（Claude Code）</li><li>NotebookLM 摘要</li><li>結論與限制</li>
+<li>Evaluation（指標、overfit、五大假設、離群值與影響點、PI 校準、成功標準）</li><li>Deployment（預測新樣本、解釋、網站）</li><li>網路主流解法比較與說明</li><li>AI 輔助內容（Claude Code）</li><li>NotebookLM 摘要</li><li>結論與限制</li>
 </ol>
 
 <svg class="flow" viewBox="0 0 900 118" xmlns="http://www.w3.org/2000/svg" font-family="PingFang TC, Microsoft JhengHei, sans-serif">
@@ -85,7 +85,7 @@
     <line x1="590" y1="49" x2="606" y2="49"/><line x1="741" y1="49" x2="757" y2="49"/>
     <path d="M674,81 C674,110 70,110 70,83"/>
   </g>
-  <text x="372" y="113" font-size="10.5" fill="#52514e" text-anchor="middle">評估結果回頭檢查商業目標（成功標準檢核，5.5 節）</text>
+  <text x="372" y="113" font-size="10.5" fill="#52514e" text-anchor="middle">評估結果回頭檢查商業目標（成功標準檢核，5.6 節）</text>
 </svg>
 
 <h2>1. Business Understanding（商業理解）</h2>
@@ -97,7 +97,7 @@
 <tr><td>估價 / 貸款機構</td><td>估價要可解釋、可稽核</td><td>線性模型的係數、p 值、信賴區間都可以逐項檢查</td></tr>
 </table>
 <p><b>目標</b>：以線性回歸建立可解釋的房價模型，回答：(1) 哪些因素最影響房價、影響多大？(2) 給定一間房子的條件，預測價格與 95% 預測區間。</p>
-<p><b>成功標準</b>（在第 5.5 節逐項檢核）：測試集 R² ≥ 0.75、MAPE ≤ 20%；95% 預測區間的實際覆蓋率在 93–97% 之間；5-fold CV 與測試集結果一致（不過擬合）；係數方向符合常識。</p>
+<p><b>成功標準</b>（在第 5.6 節逐項檢核）：測試集 R² ≥ 0.75、MAPE ≤ 20%；95% 預測區間的實際覆蓋率在 93–97% 之間；5-fold CV 與測試集結果一致（不過擬合）；係數方向符合常識。</p>
 
 <h2>2. Data Understanding（資料理解）</h2>
 <h3>2.1 欄位字典（18 個特徵 + 目標）</h3>
@@ -320,17 +320,40 @@
 <figure><img src="figures/09_residual_diagnostics.png"><figcaption>圖 16　M3 殘差診斷：殘差無明顯趨勢、近似常態（尾部略厚，峰度 4.0）</figcaption></figure>
 <figure><img src="figures/14_residual_map.png"><figcaption>圖 17　測試集殘差地圖：M3（左）在西雅圖市區與 Bellevue、Mercer Island 一帶系統性低估（紅色群聚），在北邊 Shoreline 與南邊郊區高估（藍色群聚）；加入 zipcode 後（右）群聚消失，殘差標準差從 0.258 降到 0.185</figcaption></figure>
 
-<h3>5.4 預測區間校準</h3>
+<h3>5.4 離群值與影響點分析（Outliers &amp; Influential Points）</h3>
+<p>課程 L5 有「線性回歸 + Outlier」的範例，網路解法也常用 IQR 剔除極端值。這裡對 M3 的訓練資料做標準的影響點診斷：</p>
+<table>
+<tr><th>指標</th><th>門檻</th><th>超過門檻的房屋</th><th>說明</th></tr>
+<tr><td>Cook's distance</td><td class="n">4/n = 0.00023</td><td class="n">998（5.8%）</td><td>最大值只有 0.0148，遠小於「單點會主導模型」的經典門檻 1</td></tr>
+<tr><td>槓桿值（leverage）</td><td class="n">2p/n = 0.00152</td><td class="n">1,404</td><td>槓桿值最高的 123 間中，122 間正是訓練集裡全部的臨水房屋：只佔 0.7%，所以每一間對「臨水」係數都很關鍵</td></tr>
+<tr><td>學生化殘差</td><td class="n">|r| &gt; 3</td><td class="n">139（0.8%）</td><td>常態分佈下約 0.3%，實際 0.8%，和殘差尾部略厚（峰度 4.0）一致</td></tr>
+<tr><td>價格 IQR 離群值</td><td class="n">Q3 + 1.5×IQR</td><td class="n">903</td><td>其中 65% 是臨水或建築等級 ≥ 10 的豪宅，是真實存在的高價房，不是資料錯誤</td></tr>
+</table>
+<figure><img src="figures/20_influence.png"><figcaption>圖 18　左：影響點圖（泡泡大小＝Cook's distance，右側直排是臨水房屋）；右：移除影響點前後的標準化係數幾乎不變</figcaption></figure>
+<p><b>敏感度測試</b>：把影響點或價格離群值從訓練集移除後重新擬合，用同一份測試集比較：</p>
+<table>
+<tr><th>訓練資料</th><th>筆數</th><th>Test R²(log)</th><th>RMSE</th><th>MAPE</th><th>95% PI 覆蓋率</th></tr>
+<tr><td>M3（全部訓練資料）</td><td class="n">17,135</td><td class="n">0.761</td><td class="n">195,199</td><td class="n">20.3%</td><td class="n">94.4%</td></tr>
+<tr><td>移除影響點（Cook's D &gt; 4/n）</td><td class="n">16,137</td><td class="n">0.760</td><td class="n">196,779</td><td class="n">20.2%</td><td class="n">90.5%</td></tr>
+<tr><td>移除價格離群值（IQR 規則）</td><td class="n">16,232</td><td class="n">0.754</td><td class="n">215,652</td><td class="n">20.1%</td><td class="n">92.7%</td></tr>
+</table>
+<ul>
+<li><b>係數穩定</b>：面積、等級、緯度、景觀、屋況、翻修這些主要係數，移除影響點後變化都在 ±3.2% 以內。變化較大的 log_sqft_lot、has_basement 原本係數就接近 0（log_sqft_lot 在 HC3 下也不顯著），百分比看起來大，實際影響很小。</li>
+<li><b>移除離群值沒有好處</b>：測試 R² 沒有提升；移除影響點後 95% 預測區間覆蓋率從 94.4% 掉到 90.5%，因為模型只看「正常」房子，對真實世界的變異變得過度自信。</li>
+<li><b>結論：保留所有資料</b>。這些離群值是真實的豪宅與臨水房屋，代表市場的一部分；刪掉它們只會讓預測區間失準。</li>
+</ul>
+
+<h3>5.5 預測區間校準</h3>
 <p>只看 95% 一個點不夠，所以再檢查 50%、68%、80%、90%、95%、99% 六種信賴水準下，測試集實際落在預測區間內的比例：</p>
 <table>
 <tr><th>名目水準</th><th>50%</th><th>68%</th><th>80%</th><th>90%</th><th>95%</th><th>99%</th></tr>
 <tr><td>M3 實際覆蓋率</td><td class="n">52.6%</td><td class="n">71.1%</td><td class="n">81.7%</td><td class="n">90.2%</td><td class="n">94.4%</td><td class="n">98.1%</td></tr>
 <tr><td>M4 實際覆蓋率</td><td class="n">57.4%</td><td class="n">73.5%</td><td class="n">83.4%</td><td class="n">90.5%</td><td class="n">94.0%</td><td class="n">97.6%</td></tr>
 </table>
-<figure><img src="figures/13_pi_calibration.png" style="width:62%"><figcaption>圖 18　預測區間校準圖：越接近虛線越準。90–95% 幾乎完全吻合；低水準時略為保守、99% 略不足，這和殘差「中間尖、尾部厚」（峰度 4.0）一致</figcaption></figure>
-<figure><img src="figures/10_model_comparison.png"><figcaption>圖 19　模型比較（藍＝線性回歸家族，灰＝樹模型對照）</figcaption></figure>
+<figure><img src="figures/13_pi_calibration.png" style="width:62%"><figcaption>圖 19　預測區間校準圖：越接近虛線越準。90–95% 幾乎完全吻合；低水準時略為保守、99% 略不足，這和殘差「中間尖、尾部厚」（峰度 4.0）一致</figcaption></figure>
+<figure><img src="figures/10_model_comparison.png"><figcaption>圖 20　模型比較（藍＝線性回歸家族，灰＝樹模型對照）</figcaption></figure>
 
-<h3>5.5 成功標準檢核（回到 Business Understanding）</h3>
+<h3>5.6 成功標準檢核（回到 Business Understanding）</h3>
 <table>
 <tr><th>成功標準</th><th>M3（12 特徵）</th><th>M4（+ zipcode）</th></tr>
 <tr><td>測試集 R² ≥ 0.75</td><td><span class="ok">✔</span> 0.761</td><td><span class="ok">✔</span> 0.878</td></tr>
@@ -380,9 +403,9 @@ Why? Typical King County house (all features at the training average): $465,592
 <tr><td>② 50 Startups 利潤</td><td>課程範例資料集（老師提供的 CSV 網址），用同一套通用流程分析。</td></tr>
 <tr><td>③ 自行輸入資料集</td><td><b>任意輸入 Dataset</b>：貼上 CSV 網址或上傳檔案，選擇目標欄位與特徵後自動完成 CRISP-DM：資料理解（筆數、欄位、缺失值）→ 資料準備（中位數補值、one-hot 並避開 dummy trap、train/test split）→ 特徵選擇（SelectKBest、RFE、Sequential FS、Lasso、permutation importance，只用訓練資料，可調 k）→ 多元線性回歸（係數、p 值、95% CI）→ 評估（MAE、MSE、RMSE、R²、Adjusted R²、overfit 判斷、含 95% 預測區間的預測圖、殘差圖、五大假設檢查、所有特徵選擇方法自動比較）→ 預測新樣本、下載預測結果 CSV。</td></tr>
 </table>
-<figure><img src="website.png"><figcaption>圖 20　網站 Problem ①：King County 房價估算</figcaption></figure>
-<figure><img src="website_problem2.png"><figcaption>圖 21　網站 Problem ②：50 Startups 利潤預測（Problem ③ 使用同一套流程，可輸入任意 CSV）</figcaption></figure>
-<figure><img src="screenshots/1_evaluation.png"><figcaption>圖 22　網站 Problem ①「模型評估」分頁：10 個模型比較、五大假設、預測區間校準</figcaption></figure>
+<figure><img src="website.png"><figcaption>圖 21　網站 Problem ①：King County 房價估算</figcaption></figure>
+<figure><img src="website_problem2.png"><figcaption>圖 22　網站 Problem ②：50 Startups 利潤預測（Problem ③ 使用同一套流程，可輸入任意 CSV）</figcaption></figure>
+<figure><img src="screenshots/1_evaluation.png"><figcaption>圖 23　網站 Problem ①「模型評估」分頁：10 個模型比較、五大假設、預測區間校準</figcaption></figure>
 <ul>
 <li>程式在 macOS（python3）與 Windows（python）上都執行過，結果一致（加入 Optuna 的最新版本在 Windows 上驗證）。執行紀錄會自動寫入 <code>results/run_log.txt</code>。</li>
 <li>後續可沿用 HW1 的 Streamlit 架構做成網頁表單；並應定期以新成交資料重訓（本資料只涵蓋 2014–2015，房價已大幅變動）。</li>
@@ -408,8 +431,8 @@ Why? Typical King County house (all features at the training average): $465,592
 <p><b>比較結論</b>：樹模型準確度最高，但 M4 線性回歸只差約 2–3 個百分點（R² 0.878 vs 0.905），而且已經超過網路上常見的樹模型成績（0.85–0.87）；加上交互作用的 M5（R² 0.887）在美元 RMSE 上甚至比 HistGradientBoosting 還低。線性回歸能做到這個程度，關鍵是三件事：log 轉換、系統化的特徵選擇、zipcode 地段固定效果。若目標是解釋與估價範圍，線性回歸更合適；若只求點預測準確度，則選梯度提升樹。</p>
 
 <h2 class="pb">8. AI 輔助內容（Claude Code 對話過程）</h2>
-<div class="box">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07 – 2026-10-21<br>
-說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。完整對話紀錄另附 <code>7115064191_ai_conversation.pdf</code>。作業分七段完成：建立分析 → 依評分標準補強 → 對照課程講義 → 對照作業頁建議 → 做成網站 → 補上加分項目並部署 → 增加網站內容豐富度。只收錄和作業內容有關的對話。</div>
+<div class="box">學號 7115064191 ｜ 工具：Claude Code（Anthropic，Claude Opus 5.5），桌面版 Code 分頁 ｜ 日期：2026-10-07 – 2026-10-22<br>
+說明：本作業使用的 AI 輔助工具是 <b>Claude Code</b>（Anthropic），以下為對話過程整理（工具執行的細節已省略）。完整對話紀錄另附 <code>7115064191_ai_conversation.pdf</code>。作業分八段完成：建立分析 → 依評分標準補強 → 對照課程講義 → 對照作業頁建議 → 做成網站 → 補上加分項目並部署 → 增加網站內容豐富度 → 補上離群值與影響點分析。只收錄和作業內容有關的對話。</div>
 
 <h3>第一段：建立完整分析</h3>
 <div class="msg user"><div class="who">學生</div>（貼上 HW2 作業說明的兩張截圖）HW2 要延伸自我的 HW1。</div>
@@ -511,6 +534,11 @@ Why? Typical King County house (all features at the training average): $465,592
 <div class="msg ai"><div class="who">AI</div>主要繳交是 GitHub 與網站，所以把分析成果搬進網站：Problem ① 改成五個分頁（估價、資料探索、特徵選擇、模型評估、報告與 AI 輔助），資料探索的圖表都可以互動，報告分頁可以直接下載報告與對話 PDF；Problem ②③ 補上與目標的相關係數圖、相關係數熱圖、殘差圖、五大假設檢查、所有特徵選擇方法的自動比較，以及預測結果 CSV 下載。另外寫了截圖腳本，README 放上六張網站截圖。</div>
 <div class="msg ai"><div class="who">AI</div>雲端更新後 Problem ②③ 出現「Pipeline 沒有 diagnostics」錯誤：Streamlit Cloud 拉了新程式，但記憶體裡還是舊版模組，快取裡存了舊物件。改成每次執行都重新載入自己的模組，並把模組雜湊值放進快取鍵，重新啟動一次後，雲端七個頁面全部檢查通過。</div>
 
+
+<h3>第八段：補上離群值與影響點分析</h3>
+<div class="msg user"><div class="who">學生</div>資料分析總體量、豐富度足夠嗎？你覺得要補嗎？</div>
+<div class="msg ai"><div class="who">AI</div>分量已經足夠，再增加模型或方法只會讓重點模糊；唯一的缺口是課程 L5「線性回歸 + Outlier」提到、而本作業還沒做的離群值與影響點分析，建議補上。對 M3 計算 Cook's distance、槓桿值與學生化殘差：998 間 Cook's D 超過 4/n，但最大值只有 0.0148（遠小於 1），沒有任何單點主導模型；槓桿值最高的 123 間中有 122 間正是全部的臨水房屋；價格 IQR 離群值有 65% 是臨水或建築等級 ≥ 10 的豪宅。敏感度測試：移除影響點後測試 R² 0.761 → 0.760、95% 預測區間覆蓋率 94.4% → 90.5%，主要係數變化都在 ±3.2% 以內，因此結論是保留所有資料。結果加進報告 5.4 節與網站「模型評估」分頁。</div>
+
 <h2 class="pb">9. NotebookLM 摘要</h2>
 <div class="box">工具：Google NotebookLM（Gemini Notebook），筆記本「King County House Price Prediction Models」，2026-10-07。<br>
 來源（7 個）：Kaggle 資料集頁面；nbviewer christopherbronner/house-prices；GitHub raxshah/Simple-Linear-Regression-Python、ShamGit123/Predecting-House-Price-using-machine-learning-concepts、codewithchirag18/House-Sale-Analysis-EDA-Regression-Python；AI Planet「Predict the House Prices King County」；ITM Conferences KEIS 2025 論文（itmconf_keis2025_01023）。</div>
@@ -526,18 +554,18 @@ Why? Typical King County house (all features at the training average): $465,592
 <h3>CRISP-DM 流程總結</h3>
 <table>
 <tr><th>步驟</th><th>目的</th><th>本作業做了什麼</th><th>結果</th></tr>
-<tr><td>Business Understanding</td><td>定義問題與成功標準</td><td>估價 + 95% 預測區間；訂出 R²、MAPE、PI 覆蓋率標準</td><td>5 項成功標準（5.5 節檢核）</td></tr>
+<tr><td>Business Understanding</td><td>定義問題與成功標準</td><td>估價 + 95% 預測區間；訂出 R²、MAPE、PI 覆蓋率標準</td><td>5 項成功標準（5.6 節檢核）</td></tr>
 <tr><td>Data Understanding</td><td>認識資料與品質</td><td>欄位字典、資料型態、偏態、相關係數、共線性檢查</td><td>價格右偏、面積欄位共線、zipcode 是名目變數</td></tr>
 <tr><td>Data Preparation</td><td>清理、轉換、切分</td><td>去除重複與錯誤資料、log 轉換、特徵工程、one-hot（避開 dummy trap）、80/20 切分</td><td>21,419 筆、17 個候選特徵</td></tr>
 <tr><td>Modeling</td><td>選特徵、建模型</td><td>十種以上特徵選擇方法比較（含作業頁建議的 SelectKBest、RFE、SFS、Lasso、permutation importance）；M1–M5、Ridge、Lasso、Optuna Elastic Net、AR 補充、樹模型對照</td><td>12 個特徵；M4 R² 0.878、M5 R² 0.887</td></tr>
-<tr><td>Evaluation</td><td>評估準確度與可信度</td><td>MSE／RMSE／MAE／MAPE／R²、CV、overfit 曲線、五大假設、PI 校準</td><td>M4 達成全部成功標準；PI 覆蓋 94%</td></tr>
+<tr><td>Evaluation</td><td>評估準確度與可信度</td><td>MSE／RMSE／MAE／MAPE／R²、CV、overfit 曲線、五大假設、離群值與影響點、PI 校準</td><td>M4 達成全部成功標準；PI 覆蓋 94%</td></tr>
 <tr><td>Deployment</td><td>讓模型可以被使用</td><td>pickle + gzip 存檔、<code>predict.py</code> 命令列工具、Streamlit 網站（三種 problem、任意資料集）</td><td>輸入房屋條件 → 預測價與 95% CI／PI</td></tr>
 </table>
 <h3>結論</h3>
 <ol>
 <li><b>影響房價最大的因素</b>依序是建築等級、室內面積、地段（緯度 / zipcode）、臨水與景觀；所有係數方向都符合常識。</li>
 <li><b>特徵選擇</b>：Backward、Forward、RFECV、Lasso、暴力搜尋（131,071 組）五種方法都收斂到同一組 16 個特徵；再加上 VIF ≤ 5 的限制選出 12 個，R² 只損失 0.014，卻消除了共線性。作業頁建議的五種方法在 k = 12 時，除了 Sequential FS 以外，最大 VIF 都超過 17。</li>
-<li><b>模型穩定</b>：training／test 曲線幾乎重疊，沒有 overfit；Optuna 調參確認不需要正則化。</li>
+<li><b>模型穩定</b>：training／test 曲線幾乎重疊，沒有 overfit；Optuna 調參確認不需要正則化；移除影響點後主要係數變化都在 ±4% 以內，離群值是真實豪宅、應該保留。</li>
 <li><b>地段固定效果</b>（zipcode one-hot）是線性模型最大的進步來源：R² 0.761 → 0.878，殘差地圖上的地段群聚因此消失。</li>
 <li><b>預測區間可信</b>：95% PI 實測覆蓋 94%，校準曲線在 90–95% 幾乎與理想線重合，可以直接用於估價範圍。</li>
 </ol>
