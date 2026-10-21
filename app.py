@@ -7,6 +7,7 @@ Run 7115064191_hw2.py first to create model/house_price_mlr.pkl.gz, then:
     streamlit run app.py
 """
 import gzip
+import hashlib
 import json
 import os
 import pickle
@@ -18,6 +19,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import generic_mlr
 from generic_mlr import METHODS, Pipeline, guess_feature_columns
 from predict import explain_price, predict_price
 
@@ -357,8 +359,12 @@ def load_startups():
         return pd.read_csv(os.path.join(BASE, "data", "50_Startups.csv")), "data/50_Startups.csv（本機備份）"
 
 
+# cache key includes a hash of generic_mlr.py so a redeploy never serves objects built by an older version
+PIPE_VERSION = hashlib.md5(open(generic_mlr.__file__, "rb").read()).hexdigest()
+
+
 @st.cache_resource(show_spinner="建立模型中…")
-def build_pipeline(df_key, _df, target, features, test_size):
+def build_pipeline(df_key, _df, target, features, test_size, version=PIPE_VERSION):
     return Pipeline(_df, target, list(features), test_size)
 
 
