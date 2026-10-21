@@ -35,7 +35,7 @@ st.set_page_config(page_title="HW2 多元線性回歸", page_icon="📈", layout
 
 
 @st.cache_resource
-def load_model():
+def _load_model(version):
     with gzip.open(os.path.join(BASE, "model", "house_price_mlr.pkl.gz"), "rb") as f:
         return pickle.load(f)
 
@@ -48,7 +48,7 @@ def zip_locations():
 
 
 @st.cache_data
-def model_metrics():
+def _model_metrics(version):
     with open(os.path.join(BASE, "results", "metrics.json"), encoding="utf-8") as f:
         m = json.load(f)
     name = "M4 MLR selected + zipcode one-hot"
@@ -61,15 +61,29 @@ def kc_data():
     return pd.read_csv(os.path.join(BASE, "kc_house_data.csv"))
 
 
+def mtime(*parts):
+    """File modification time: passed to cached loaders so a redeploy with new results refreshes the cache."""
+    path = os.path.join(BASE, *parts)
+    return os.path.getmtime(path) if os.path.exists(path) else 0
+
+
 @st.cache_data
-def read_result(name):
+def _read_result(name, version):
     return pd.read_csv(os.path.join(BASE, "results", name))
 
 
+def read_result(name):
+    return _read_result(name, mtime("results", name))
+
+
 @st.cache_data
-def all_metrics():
+def _all_metrics(version):
     with open(os.path.join(BASE, "results", "metrics.json"), encoding="utf-8") as f:
         return json.load(f)
+
+
+def all_metrics():
+    return _all_metrics(mtime("results", "metrics.json"))
 
 
 def fig(name, caption):
@@ -225,7 +239,7 @@ def kc_evaluation():
 
 
 @st.cache_data
-def notebooklm_summary():
+def _notebooklm_summary(version):
     import re
     html = open(os.path.join(BASE, "report.html"), encoding="utf-8").read()
     m = re.search(r'<div class="nlm">(.*?)</div>', html, re.S)
@@ -246,7 +260,7 @@ def kc_report():
         ["Deployment", "pickle + gzip、predict.py（預測並解釋）、本網站（三種 problem、任意資料集）"],
     ], columns=["步驟", "做了什麼"]))
     st.subheader("NotebookLM 摘要（網路主流解法研究）")
-    for para in notebooklm_summary():
+    for para in _notebooklm_summary(mtime("report.html")):
         st.markdown(para)
     st.subheader("AI 輔助內容")
     st.markdown("本作業使用 **Claude Code**（Anthropic）協助分析與開發，完整過程整理在對話紀錄 PDF。")
@@ -262,9 +276,9 @@ def kc_report():
 
 
 def page_king_county():
-    bundle = load_model()
+    bundle = _load_model(mtime("model", "house_price_mlr.pkl.gz"))
     zips = zip_locations()
-    m4, cov = model_metrics()
+    m4, cov = _model_metrics(mtime("results", "metrics.json"))
 
     st.title("🏠 King County 房價估算")
     st.caption("HW2 多元線性回歸部署｜學號 7115064191｜模型 M4：12 個特徵 + zipcode 地段效果，"
