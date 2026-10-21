@@ -112,7 +112,7 @@ def page_king_county():
             text=alt.Text("影響 (%):Q", format="+.1f"))
         neg = bars.transform_filter(alt.datum["影響 (%)"] < 0).mark_text(align="right", dx=-4, color="#52514e").encode(
             text=alt.Text("影響 (%):Q", format="+.1f"))
-        st.altair_chart((bars + pos + neg).properties(height=360), use_container_width=True)
+        st.altair_chart((bars + pos + neg).properties(height=360), width="stretch")
 
     with right:
         st.subheader("位置")
@@ -126,7 +126,7 @@ def page_king_county():
         )
         here = alt.Chart(zdf[zdf["zipcode"] == zipcode]).mark_point(size=420, shape="diamond", filled=True,
                                                                    color="#eb6834").encode(x="long:Q", y="lat:Q")
-        st.altair_chart((allz + here).properties(height=360), use_container_width=True)
+        st.altair_chart((allz + here).properties(height=360), width="stretch")
         st.caption(f"每個點是一個 zipcode（顏色＝成交中位價），◆ 為目前選擇。zipcode {zipcode}：資料集中 {int(zips.loc[zipcode, 'sales'])} 筆成交，"
                    f"中位數 ${zips.loc[zipcode, 'median_price']:,.0f}")
 
@@ -183,9 +183,9 @@ def page_generic(df, title, source, default_target=None):
     b.metric("欄位數", f"{df.shape[1]}")
     c.metric("缺失值", f"{int(df.isna().sum().sum()):,}")
     with st.expander("資料預覽與欄位型態", expanded=False):
-        st.dataframe(df.head(20), use_container_width=True)
+        st.dataframe(df.head(20), width="stretch")
         st.dataframe(pd.DataFrame({"型態": df.dtypes.astype(str), "缺失值": df.isna().sum(),
-                                   "不同值個數": df.nunique()}), use_container_width=True)
+                                   "不同值個數": df.nunique()}), width="stretch")
 
     numeric = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
     if not numeric:
@@ -234,7 +234,7 @@ def page_generic(df, title, source, default_target=None):
     st.markdown(f"**{method}** 從訓練資料選出 **{len(cols)}** 個特徵：`{'`, `'.join(cols)}`")
     coef = pd.DataFrame({"係數": pipe.model.params, "p 值": pipe.model.pvalues,
                          "95% CI 下限": pipe.model.conf_int()[0], "95% CI 上限": pipe.model.conf_int()[1]})
-    st.dataframe(coef.style.format("{:.4g}"), use_container_width=True)
+    st.dataframe(coef.style.format("{:.4g}"), width="stretch")
 
     # ---- Evaluation ----
     st.subheader("4. 評估（測試集）")
@@ -260,12 +260,12 @@ def page_generic(df, title, source, default_target=None):
     line = base.mark_line(color="#2a78d6", strokeWidth=2).encode(y="預測值:Q")
     pts = base.mark_circle(color="#0b0b0b", size=28).encode(y="實際值:Q", tooltip=["實際值", "預測值", "PI 下限", "PI 上限"])
     st.markdown("**預測圖**：藍線＝預測值、綠色帶＝95% 預測區間、黑點＝實際值")
-    st.altair_chart((band + line + pts).properties(height=340), use_container_width=True)
+    st.altair_chart((band + line + pts).properties(height=340), width="stretch")
 
     with st.expander("比較所有特徵選擇方法（同一個 k）"):
         if st.button("開始比較"):
             st.dataframe(pipe.compare_methods(k).style.format({"Test R²": "{:.3f}", "Test RMSE": "{:,.4g}"}, na_rep="–"),
-                         use_container_width=True)
+                         width="stretch")
 
     # ---- Deployment ----
     st.subheader("5. 部署：預測新樣本")
