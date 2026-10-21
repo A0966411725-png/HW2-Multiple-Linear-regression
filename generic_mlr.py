@@ -38,7 +38,9 @@ def prepare(df, target, features):
     d = df[features + [target]].copy()
     d[target] = pd.to_numeric(d[target], errors="coerce")
     d = d.dropna(subset=[target])
-    cat_cols = [c for c in features if d[c].dtype == object or str(d[c].dtype) == "category" or d[c].dtype == bool]
+    # anything non-numeric (object, pandas>=3 "str", category) or boolean is treated as categorical
+    cat_cols = [c for c in features
+                if not pd.api.types.is_numeric_dtype(d[c]) or pd.api.types.is_bool_dtype(d[c])]
     num_cols = [c for c in features if c not in cat_cols]
     for c in num_cols:
         d[c] = pd.to_numeric(d[c], errors="coerce")

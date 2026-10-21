@@ -1,8 +1,15 @@
+[開啟 HW2 多元線性回歸網站](https://hw2-mlr-yenkai.streamlit.app/)
+
 ![King County 房價估算網站](website.png)
 
-房價估算網站（Streamlit）：在專案資料夾執行 `streamlit run app.py`。
-
 [GitHub 原始碼](https://github.com/A0966411725-png/HW2-Multiple-Linear-regression)
+
+## 網站功能
+- **下拉選單切換 Problem**（加分 1）：① King County 房價（本作業主模型 M4）、② 50 Startups 利潤、③ 自行輸入資料集。
+- **任意輸入 Dataset**（加分 2）：貼上 CSV 網址（例如 [50_Startups.csv](https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv)）或上傳檔案，選擇目標欄位後，網站自動完成 CRISP-DM：資料理解 → 缺值處理與 one-hot 編碼 → 特徵選擇（SelectKBest / RFE / Sequential FS / Lasso / permutation importance，只用訓練資料）→ 多元線性回歸 → MAE、MSE、RMSE、R²、Adjusted R² → 含 95% 預測區間的預測圖 → 預測新樣本。
+- 直接連結：[① 房價](https://hw2-mlr-yenkai.streamlit.app/?problem=1)｜[② 50 Startups](https://hw2-mlr-yenkai.streamlit.app/?problem=2)｜[③ 自行輸入](https://hw2-mlr-yenkai.streamlit.app/?problem=3)
+
+![50 Startups 利潤預測](website_problem2.png)
 
 # HW2 — King County House Price Prediction (Multiple Linear Regression, CRISP-DM)
 
@@ -16,7 +23,7 @@ pip install -r requirements.txt
 python 7115064191_hw2.py      # full CRISP-DM pipeline → figures/, results/, model/  (Mac: python3, 1–2 min)
 python predict.py --sqft_living 2000 --grade 8 --zipcode 98052 --lat 47.68
 python predict.py --explain    # why the model predicts this price
-streamlit run app.py           # house-price website (screenshot above)
+streamlit run app.py           # the website (also online: https://hw2-mlr-yenkai.streamlit.app/)
 ```
 Run on macOS and Windows with identical results (latest version, with Optuna, verified on Windows). On Windows with Smart App Control, the newest pandas / scikit-learn DLLs may be blocked; use a venv with `pandas==2.2.3 scikit-learn==1.5.2`.
 
@@ -58,7 +65,7 @@ Public solutions summarised with NotebookLM report R² ≈ 0.65–0.70 for multi
 ## Files
 - `7115064191_hw2.py` — main program (also writes `results/run_log.txt`)
 - `predict.py` — deployment demo (predict + explain new houses)
-- `app.py` — Streamlit house-price website; `website.png` — its screenshot
+- `app.py` + `generic_mlr.py` — Streamlit website (problem dropdown, any-dataset regression); `website.png`, `website_problem2.png` — screenshots; `data/50_Startups.csv` — offline copy of problem 2 data
 - `7115064191_hw2_report.pdf` / `report.html` — report (CRISP-DM, AI 輔助內容 (Claude Code), NotebookLM 摘要, 主流解法比較)
 - `7115064191_ai_conversation.pdf` / `ai_conversation.html` — AI 輔助內容 (Claude Code conversation log)
 - `figures/` (19 charts), `results/` (metrics, feature selection, selection-method comparison, methods × k sweep, feature rankings, best subset, Optuna trials, diagnostics, PI calibration, AR), `model/` — generated outputs
