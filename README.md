@@ -7,6 +7,7 @@
 ## 網站功能
 - **下拉選單切換 Problem**（加分 1）：① King County 房價（本作業主模型 M4）、② 50 Startups 利潤、③ 自行輸入資料集。
 - **任意輸入 Dataset**（加分 2）：貼上 CSV 網址（例如 [50_Startups.csv](https://raw.githubusercontent.com/Avik-Jain/100-Days-Of-ML-Code/master/datasets/50_Startups.csv)）或上傳檔案，選擇目標欄位後，網站自動完成 CRISP-DM：資料理解 → 缺值處理與 one-hot 編碼 → 特徵選擇（SelectKBest / RFE / Sequential FS / Lasso / permutation importance，只用訓練資料）→ 多元線性回歸 → MAE、MSE、RMSE、R²、Adjusted R² → 含 95% 預測區間的預測圖 → 預測新樣本。
+- 不會休眠：GitHub Actions 每 4 小時用瀏覽器造訪網站一次（`.github/workflows/keep-awake.yml`），Streamlit Cloud 免費方案 12 小時沒人造訪才會休眠。
 - 直接連結：[① 房價](https://hw2-mlr-yenkai.streamlit.app/?problem=1)｜[② 50 Startups](https://hw2-mlr-yenkai.streamlit.app/?problem=2)｜[③ 自行輸入](https://hw2-mlr-yenkai.streamlit.app/?problem=3)
 
 ![50 Startups 利潤預測](website_problem2.png)
