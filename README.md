@@ -76,4 +76,4 @@ Public solutions summarised with NotebookLM report R² ≈ 0.65–0.70 for multi
 - `app.py` + `generic_mlr.py` — Streamlit website (problem dropdown, any-dataset regression); `website.png`, `website_problem2.png`, `screenshots/` — screenshots (regenerate with `.github/scripts/take_screenshots.py`); `data/50_Startups.csv` — offline copy of problem 2 data
 - `7115064191_hw2_report.pdf` / `report.html` — report (CRISP-DM, AI 輔助內容 (Claude Code), NotebookLM 摘要, 主流解法比較)
 - `7115064191_ai_conversation.pdf` / `ai_conversation.html` — AI 輔助內容 (Claude Code conversation log)
-- `figures/` (19 charts), `results/` (metrics, feature selection, selection-method comparison, methods × k sweep, feature rankings, best subset, Optuna trials, diagnostics, PI calibration, AR), `model/` — generated outputs
+- `figures/` (20 charts), `results/` (metrics, feature selection, selection-method comparison, methods × k sweep, feature rankings, best subset, Optuna trials, diagnostics, influence analysis, PI calibration, AR), `model/` — generated outputs
